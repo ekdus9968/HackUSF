@@ -7,6 +7,7 @@ from constants import *
 from sound import play_beep, play_warning
 from emergency import get_emergency_contact
 from sms import send_critical_alert
+from alert import speak
 
 mp_face_mesh = mp.solutions.face_mesh
 mp_drawing = mp.solutions.drawing_utils
@@ -97,6 +98,8 @@ with mp_face_mesh.FaceMesh(
                         eyes_closed_start = time.time()
                     closed_duration = time.time() - eyes_closed_start
                     if closed_duration >= ALERT_3:
+                        if eye_alert_level != 3:  # only trigger once
+                            speak("Warning! You have been driving with your eyes closed. Please pull over.")
                         eye_alert_level = 3
                     elif closed_duration >= ALERT_2:
                         eye_alert_level = 2
@@ -115,6 +118,8 @@ with mp_face_mesh.FaceMesh(
                         nod_start = time.time()
                     nod_duration = time.time() - nod_start
                     if nod_duration >= NOD_ALERT_3:
+                        if nod_alert_level != 3:  # only trigger once
+                            speak("Warning! You have been driving with your head down. Please pay attention to the road.")
                         nod_alert_level = 3
                     elif nod_duration >= NOD_ALERT_2:
                         nod_alert_level = 2

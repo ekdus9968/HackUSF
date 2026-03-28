@@ -1,7 +1,20 @@
+# Python bytecode
 __pycache__/
 *.pyc
+*.pyo
 
 # 환경/개인 정보
 sms.py
 
-# other
+# Virtual environment
+venv/
+
+# Environment variables / secrets
+.env
+
+# Mac junk
+.DS_Store
+
+# Data files (don't commit user session data)
+data/sessions.csv
+data/user_profile.json

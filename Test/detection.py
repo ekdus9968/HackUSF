@@ -174,14 +174,4 @@ with mp_face_mesh.FaceMesh(
                             cv2.FONT_HERSHEY_SIMPLEX, 1, color, 2)
                 if eye_closed:
                     cv2.putText(frame, f"Eyes closed: {closed_duration:.1f}s", (30, 150),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.8, color, 2)
-                if head_down and pitch is not None:
-                    cv2.putText(frame, f"Head down: {nod_duration:.1f}s  pitch:{pitch:.1f}", (30, 190),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.8, color, 2)
-
-        cv2.imshow("Tiredness Tracker", frame)
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
-
-cap.release()
-cv2.destroyAllWindows()
+                                cv2.FONT_HERSHEY_SIMPLEX

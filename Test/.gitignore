@@ -1,1 +1,23 @@
+# Python bytecode
+__pycache__/
+*.pyc
+*.pyo
+
+# 환경/개인 정보
+sms.py
+
+# Virtual environment
 venv312/
+
+# Environment variables / secrets
+.env
+
+# Mac junk
+.DS_Store
+
+# Data files (don't commit user session data)
+data/sessions.csv
+data/user_profile.json
+
+# other
+__pycache__/config.cpython-313.pyc

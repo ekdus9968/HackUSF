@@ -15,4 +15,6 @@ def speak(text):
     threading.Thread(target=_speak, daemon=True).start()
 
 if __name__ == "__main__":
-    speak("Warning! You have been driving with your eyes clo
+    speak("Warning! You have been driving with your eyes closed. Please pull over.")
+    import time
+    time.sleep(5)

@@ -5,3 +5,5 @@ __pycache__/
 sms.py
 
 # other
+.DS_Store
+venv/

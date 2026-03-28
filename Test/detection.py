@@ -39,12 +39,13 @@ def calculate_EAR(eye_landmarks):
 
 def run():
     # ── Emergency contact setup ───────────────────────────────────────────────
-    contact_name, contact_email = get_emergency_contact()
+    contact_name  = state.get("contact_name", "")
+    contact_email = state.get("contact_email", "")
     if contact_name or contact_email:
         print(f"Emergency contact saved: {contact_name}  {contact_email}")
 
     # ── Camera ────────────────────────────────────────────────────────────────
-    cap = cv2.VideoCapture(1)   # use 1 for MacBook built-in on M1 with Continuity Camera
+    cap = cv2.VideoCapture(0)  
 
     # ── Alert state ───────────────────────────────────────────────────────────
     eyes_closed_start = None
@@ -63,8 +64,9 @@ def run():
     ) as face_mesh:
 
         # ── Calibration (runs before main loop) ───────────────────────────────
-        EAR_THRESHOLD, PITCH_BASELINE = calibrate(face_mesh, cap)
-        NOD_THRESHOLD = PITCH_BASELINE + NOD_PITCH_OFFSET
+        EAR_THRESHOLD  = state.get("ear_threshold", 0.25)
+        PITCH_BASELINE = state.get("pitch_baseline", 0.0)
+        NOD_THRESHOLD  = PITCH_BASELINE + NOD_PITCH_OFFSET
 
         # ── Main detection loop ───────────────────────────────────────────────
         while cap.isOpened():

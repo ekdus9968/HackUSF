@@ -1,62 +1,41 @@
-import cv2
-import numpy as np
+import customtkinter as ctk
 
 def get_emergency_contact():
-    """Emergency contact setup screen — ENTER to confirm, ESC to skip"""
-    name  = ""
-    email = ""
-    field = 0   # 0 = name field, 1 = email field
+    """Simple Tkinter dialog for emergency contact setup"""
+    result = {"name": "", "email": ""}
 
-    W, H = 640, 400
+    dialog = ctk.CTk()
+    dialog.title("Emergency Contact Setup")
+    dialog.geometry("400x280")
+    dialog.configure(fg_color="#0D1219")
+    dialog.resizable(False, False)
 
-    while True:
-        canvas = np.zeros((H, W, 3), dtype=np.uint8)
+    ctk.CTkLabel(dialog, text="Emergency Contact Setup",
+                 font=ctk.CTkFont(size=16, weight="bold"),
+                 text_color="#F5A623").pack(pady=20)
 
-        # Title
-        cv2.putText(canvas, "Emergency Contact Setup",
-                    (80, 50), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 255, 255), 2)
-        cv2.line(canvas, (60, 65), (580, 65), (100, 100, 100), 1)
+    ctk.CTkLabel(dialog, text="Name:", text_color="#C8D8E8").pack(anchor="w", padx=40)
+    name_entry = ctk.CTkEntry(dialog, width=320, placeholder_text="Contact name")
+    name_entry.pack(padx=40, pady=(4, 12))
 
-        # Name field
-        name_color = (0, 255, 255) if field == 0 else (180, 180, 180)
-        cv2.putText(canvas, "Name:", (60, 130),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (200, 200, 200), 1)
-        cv2.rectangle(canvas, (60, 145), (580, 185), name_color, 2)
-        cv2.putText(canvas, name + ("|" if field == 0 else ""),
-                    (72, 175), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
+    ctk.CTkLabel(dialog, text="Email:", text_color="#C8D8E8").pack(anchor="w", padx=40)
+    email_entry = ctk.CTkEntry(dialog, width=320, placeholder_text="Contact email")
+    email_entry.pack(padx=40, pady=(4, 12))
 
-        # Email field
-        email_color = (0, 255, 255) if field == 1 else (180, 180, 180)
-        cv2.putText(canvas, "Email:", (60, 230),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (200, 200, 200), 1)
-        cv2.rectangle(canvas, (60, 245), (580, 285), email_color, 2)
-        cv2.putText(canvas, email + ("|" if field == 1 else ""),
-                    (72, 275), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
+    def confirm():
+        result["name"]  = name_entry.get().strip()
+        result["email"] = email_entry.get().strip()
+        dialog.destroy()
 
-        # Instructions
-        cv2.putText(canvas, "ENTER: next / confirm    ESC: skip",
-                    (100, 350), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (120, 120, 120), 1)
+    def skip():
+        dialog.destroy()
 
-        cv2.imshow("Setup", canvas)
-        key = cv2.waitKey(20) & 0xFF
+    btn_row = ctk.CTkFrame(dialog, fg_color="transparent")
+    btn_row.pack(pady=12)
+    ctk.CTkButton(btn_row, text="Confirm", command=confirm,
+                  fg_color="#F5A623", text_color="#000").pack(side="left", padx=8)
+    ctk.CTkButton(btn_row, text="Skip", command=skip,
+                  fg_color="#1A2332", text_color="#C8D8E8").pack(side="left", padx=8)
 
-        if key == 27:           # ESC — skip
-            break
-        elif key == 13:         # ENTER — next field or confirm
-            if field == 0 and name:
-                field = 1
-            elif field == 1:
-                break
-        elif key == 8:          # BACKSPACE
-            if field == 0:
-                name = name[:-1]
-            else:
-                email = email[:-1]
-        elif 32 <= key <= 126:  # printable character
-            if field == 0:
-                name += chr(key)
-            else:
-                email += chr(key)
-
-    cv2.destroyWindow("Setup")
-    return name.strip(), email.strip()
+    dialog.mainloop()
+    return result["name"], result["email"]

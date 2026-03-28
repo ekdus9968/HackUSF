@@ -39,13 +39,13 @@ class AlertEyeApp(ctk.CTk):
  
         # Window configuration 
         self.title("AlertEye — Driver Monitoring System")
-        self.state("zoomed")
-        self.resizable(False, False)   # lock size so layout doesn't break
+        self.resizable(True, True)   # must be True for zoomed to work
+        self.after(100, lambda: self.state("zoomed"))   # small delay helps on Mac
         self.configure(fg_color=BG)    # set background to cockpit dark color
- 
-        # Camera initialization 
-        # Index 1 for built-in MacBook webcam.
-        self.cap = cv2.VideoCapture(1)
+
+        # Initialize camera
+
+        cap = cv2.VideoCapture(0)
  
         # Build UI then start the update loop
         self._build_ui()
@@ -272,28 +272,18 @@ class AlertEyeApp(ctk.CTk):
         If stored as a local variable, Python garbage collects it before
         Tkinter finishes rendering, resulting in a blank canvas.
         """
-        ret, frame = self.cap.read()
- 
-        if not ret:
-            return   # no frame available, skip tick
- 
-        # Mirror horizontally — feels more natural for a driver-facing camera
-        frame = cv2.flip(frame, 1)
- 
-        # Resize to match canvas — guard against canvas not yet drawn (size = 1)
+        frame = state.get("frame")
+        if frame is None:
+            return
+
         canvas_w = self.canvas.winfo_width()
         canvas_h = self.canvas.winfo_height()
         if canvas_w > 1 and canvas_h > 1:
             frame = cv2.resize(frame, (canvas_w, canvas_h))
- 
-        # Convert BGR (OpenCV default) → RGB (PIL requirement)
+
         frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
- 
-        # Build Tkinter-compatible image and keep reference on self
         img = Image.fromarray(frame_rgb)
-        self._photo = ImageTk.PhotoImage(image=img)   # ← must stay on self!
- 
-        # Draw to canvas
+        self._photo = ImageTk.PhotoImage(image=img)
         self.canvas.delete("all")
         self.canvas.create_image(0, 0, anchor="nw", image=self._photo)
  
@@ -368,7 +358,6 @@ class AlertEyeApp(ctk.CTk):
         Always release the webcam before destroying the window —
         otherwise the camera stays locked at the OS level.
         """
-        self.cap.release()
         self.destroy()
  
 # Entry point

@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+
+# 환경/개인 정보
+sms.py
+
+# other

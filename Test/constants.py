@@ -42,7 +42,7 @@ def calculate_EAR(eye_landmarks):
 
 
 def calculate_pitch(face_landmarks, frame_w, frame_h):
-    """MediaPipe 랜드마크로 head pitch 각도(도) 반환 — 숙일수록 양수 증가"""
+    """MediaPipe convert head pitch degree by landmark— down + int"""
     # 3D model base 
     model_points = np.array([
         (0.0,    0.0,    0.0),    # end of nose (1)

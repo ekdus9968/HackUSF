@@ -1,0 +1,11 @@
+
+__pycache__/
+*.pyc
+
+# 환경/개인 정보
+config.py
+secret_keys.json
+.env
+sms.py
+
+# other

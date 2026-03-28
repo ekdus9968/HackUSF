@@ -76,7 +76,7 @@ def calibrate(face_mesh, cap):
     threshold  = (open_avg + closed_avg) / 2.0
     print(f"Calibrated — Open: {open_avg:.2f}, Closed: {closed_avg:.2f}, Threshold: {threshold:.2f}")
 
-    # ── Head Pose 캘리브레이션 ─────────────────────────────────────
+    # ── Head Pose calibration ─────────────────────────────────────
     collecting = False
     pitch_samples = []
     print("Head pose calibration: Look STRAIGHT ahead. Press SPACE when ready...")

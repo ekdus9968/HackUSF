@@ -39,7 +39,7 @@ class AlertEyeApp(ctk.CTk):
  
         # Window configuration 
         self.title("AlertEye — Driver Monitoring System")
-        self.geometry("860x520")       # width x height in pixels
+        self.state("zoomed")
         self.resizable(False, False)   # lock size so layout doesn't break
         self.configure(fg_color=BG)    # set background to cockpit dark color
  

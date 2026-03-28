@@ -7,6 +7,7 @@ from constants import *
 from sound import play_beep, play_warning
 from emergency import get_emergency_contact
 from sms import send_critical_alert
+from voice import start_voice_listener, consume_stop
 
 mp_face_mesh = mp.solutions.face_mesh
 
@@ -56,6 +57,8 @@ def is_btn_clicked(x, y):
 contact_name, contact_email = get_emergency_contact()
 if contact_name or contact_email:
     print(f"Emergency contact saved: {contact_name}  {contact_email}")
+
+start_voice_listener()
 
 cap = cv2.VideoCapture(0)
 
@@ -118,9 +121,11 @@ with mp_face_mesh.FaceMesh(
 
                 danger    = eye_closed or head_down  # 위험 상태 여부
 
-                # ── STOP 버튼 클릭 ────────────────────────────────
-                if clicked[0]:
-                    if is_btn_clicked(*click_pos[0]) and (alert_level >= 1 or waiting_stop):
+                # ── STOP 버튼 클릭 or 음성 "stop" ────────────────
+                voice_stop = consume_stop()
+                if clicked[0] or voice_stop:
+                    btn_hit = voice_stop or is_btn_clicked(*click_pos[0])
+                    if btn_hit and (alert_level >= 1 or waiting_stop):
                         # 소리/타이머 전부 리셋 → 정상 복귀
                         closed_start  = None
                         alert_level   = 0

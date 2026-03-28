@@ -39,7 +39,7 @@ def calculate_EAR(eye_landmarks):
     C = np.linalg.norm(np.array(eye_landmarks[0]) - np.array(eye_landmarks[3]))
     return (A + B) / (2.0 * C)
 
-# ── 비상 연락처 입력 ──────────────────────────────────────────────
+# ── emergency contact ──────────────────────────────────────────────
 contact_name, contact_email = get_emergency_contact()
 if contact_name or contact_email:
     print(f"Emergency contact saved: {contact_name}  {contact_email}")
@@ -63,7 +63,7 @@ with mp_face_mesh.FaceMesh(
     min_tracking_confidence=0.5
 ) as face_mesh:
     EAR_THRESHOLD, PITCH_BASELINE = calibrate(face_mesh, cap)
-    NOD_THRESHOLD = PITCH_BASELINE + NOD_PITCH_OFFSET  # 숙임 감지 기준
+    NOD_THRESHOLD = PITCH_BASELINE + NOD_PITCH_OFFSET  # standard of head down
 
     while cap.isOpened():
         ret, frame = cap.read()
@@ -81,17 +81,17 @@ with mp_face_mesh.FaceMesh(
                     lm = face_landmarks.landmark[idx]
                     return (lm.x * w, lm.y * h)
 
-                # ── EAR 계산 ──────────────────────────────────────
+                # ── EAR  ──────────────────────────────────────
                 left_pts   = [get_point(i) for i in LEFT_EYE]
                 right_pts  = [get_point(i) for i in RIGHT_EYE]
                 avg_EAR    = (calculate_EAR(left_pts) + calculate_EAR(right_pts)) / 2.0
                 eye_closed = avg_EAR < EAR_THRESHOLD
 
-                # ── Pitch 계산 ────────────────────────────────────
+                # ── Pitch  ────────────────────────────────────
                 pitch      = calculate_pitch(face_landmarks, w, h)
                 head_down  = pitch is not None and pitch > NOD_THRESHOLD
 
-                # ── 눈 감김 타이머 ────────────────────────────────
+                # ── closed eyes timer ────────────────────────────────
                 if eye_closed:
                     if eyes_closed_start is None:
                         eyes_closed_start = time.time()
@@ -109,7 +109,7 @@ with mp_face_mesh.FaceMesh(
                     eye_alert_level   = 0
                     closed_duration   = 0
 
-                # ── 고개 숙임 타이머 ──────────────────────────────
+                # ── head down timer ──────────────────────────────
                 if head_down:
                     if nod_start is None:
                         nod_start = time.time()
@@ -127,11 +127,11 @@ with mp_face_mesh.FaceMesh(
                     nod_alert_level = 0
                     nod_duration    = 0
 
-                # ── 최종 alert: 두 채널 중 높은 쪽 ──────────────
+                # ── final alert: bigger one ──────────────
                 alert_level = max(eye_alert_level, nod_alert_level)
 
-                # ── 소리 / 알림 (레벨 상승 시만) ─────────────────
-                # 눈 채널
+                # ── sound / alram ─────────────────
+                # ete channel
                 if eye_alert_level != eye_prev_level:
                     if eye_alert_level == 1:
                         play_beep()
@@ -142,7 +142,7 @@ with mp_face_mesh.FaceMesh(
                         send_critical_alert(contact_name, contact_email)
                     eye_prev_level = eye_alert_level
 
-                # 고개 채널
+                # head channel
                 if nod_alert_level != nod_prev_level:
                     if nod_alert_level == 1:
                         play_beep()
@@ -153,7 +153,7 @@ with mp_face_mesh.FaceMesh(
                         send_critical_alert(contact_name, contact_email)
                     nod_prev_level = nod_alert_level
 
-                # ── 눈 윤곽선 ─────────────────────────────────────
+                # ── ─────────────────────────────────────
                 color = alert_colors[alert_level]
                 for pt in left_pts + right_pts:
                     cv2.circle(frame, (int(pt[0]), int(pt[1])), 2, color, -1)

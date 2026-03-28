@@ -7,7 +7,7 @@ __pycache__/
 sms.py
 
 # Virtual environment
-venv/
+venv312/
 
 # Environment variables / secrets
 .env

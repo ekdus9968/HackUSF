@@ -10,30 +10,9 @@ from sms import send_critical_alert
 from voice import start_voice_listener, consume_stop
 from alert import speak
 from chat import handle_chat
+from auth import run_auth, save_calibration
 
 mp_face_mesh = mp.solutions.face_mesh
-
-LEFT_EYE  = [362, 385, 387, 263, 373, 380]
-RIGHT_EYE = [33, 160, 158, 133, 153, 144]
-
-alert_colors = {
-    0: (0, 255, 0),
-    1: (0, 255, 255),
-    2: (0, 165, 255),
-    3: (0, 0, 255),
-}
-alert_labels = {
-    0: "ALERT: OK",
-    1: "ALERT: WARNING",
-    2: "ALERT: DANGER",
-    3: "ALERT: CRITICAL",
-}
-
-def calculate_EAR(eye_landmarks):
-    A = np.linalg.norm(np.array(eye_landmarks[1]) - np.array(eye_landmarks[5]))
-    B = np.linalg.norm(np.array(eye_landmarks[2]) - np.array(eye_landmarks[4]))
-    C = np.linalg.norm(np.array(eye_landmarks[0]) - np.array(eye_landmarks[3]))
-    return (A + B) / (2.0 * C)
 
 # ── STOP button ───────────────────────────────────────────────────
 BTN = {"x": 20, "y": 210, "w": 110, "h": 42}
@@ -55,10 +34,18 @@ def is_btn_clicked(x, y):
     return (BTN["x"] <= x <= BTN["x"] + BTN["w"] and
             BTN["y"] <= y <= BTN["y"] + BTN["h"])
 
-# ── Emergency contact ─────────────────────────────────────────────
-contact_name, contact_email = get_emergency_contact()
-if contact_name or contact_email:
-    print(f"Emergency contact saved: {contact_name}  {contact_email}")
+# Authentication
+user = run_auth()
+if user is None:
+    exit()
+
+# Pre-fill emergency contact from account, or ask manually if guest
+if user["user_id"] == "guest" or not user.get("emergency_email"):
+    contact_name, contact_email = get_emergency_contact()
+else:
+    contact_name  = f"{user['first_name']} {user['last_name']}"
+    contact_email = user["emergency_email"]
+    print(f"Emergency contact loaded from account: {contact_name}  {contact_email}")
 
 start_voice_listener(chat_handler=handle_chat)
 
@@ -95,8 +82,17 @@ with mp_face_mesh.FaceMesh(
     min_tracking_confidence=0.5
 ) as face_mesh:
 
-    EAR_THRESHOLD, PITCH_BASELINE = calibrate(face_mesh, cap)
-    cv2.destroyWindow("Calibration")
+    # Use saved calibration or run new one
+    if user.get("needs_calibration") or user["ear_threshold"] is None:
+        EAR_THRESHOLD, PITCH_BASELINE = calibrate(face_mesh, cap)
+        cv2.destroyWindow("Calibration")
+        if user["user_id"] != "guest":
+            save_calibration(user["user_id"], EAR_THRESHOLD, PITCH_BASELINE)
+            print(f"[Auth] Calibration saved for '{user['user_id']}'.")
+    else:
+        EAR_THRESHOLD  = user["ear_threshold"]
+        PITCH_BASELINE = user["pitch_baseline"]
+        print(f"[Auth] Calibration loaded — EAR: {EAR_THRESHOLD:.3f}, Pitch: {PITCH_BASELINE:.2f}")
     NOD_THRESHOLD = PITCH_BASELINE + NOD_PITCH_OFFSET
 
     while cap.isOpened():

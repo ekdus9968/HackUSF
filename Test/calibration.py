@@ -10,6 +10,7 @@ import cv2
 import numpy as np
 import customtkinter as ctk
 from PIL import Image, ImageTk
+from sound import play_complete
 import threading
 import time
 
@@ -338,6 +339,7 @@ class CalibrationWindow(ctk.CTk):
 
                         if count >= target:
                             self._finish_step()
+                            break
 
             # Face detection hint
             if not face_detected and self._btn.cget("state") == "normal":
@@ -374,7 +376,9 @@ class CalibrationWindow(ctk.CTk):
         step = STEPS[self._step]
         self._status_lbl.configure(text=f"✓ {step['title']} captured!",
                                    text_color=GREEN)
+        self._play_calibration_sound()
         self._prog_bar.set(1)
+        play_complete()
 
         if self._step == 0:
             self._open_avg = float(np.mean(samples))
@@ -393,6 +397,7 @@ class CalibrationWindow(ctk.CTk):
             self.after(800, self._update_step_ui)
         else:
             self._finish_all()
+
 
     def _finish_all(self):
         self.done = True

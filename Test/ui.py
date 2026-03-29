@@ -7,6 +7,7 @@ import io
 import cv2
 import time
 import threading
+import subprocess
 import mediapipe as mp
 import numpy as np
 import customtkinter as ctk
@@ -662,6 +663,12 @@ class AppWindow(ctk.CTk):
         self._cal_btn.configure(text="COLLECTING...", state="disabled", fg_color=BORDER)
         self._cal_status_lbl.configure(text="Hold still...",
                                        text_color=CAL_STEPS[self._cal_step]["color"])
+    def _play_calibration_sound(self):
+        try:
+            sound_path = os.path.join(os.path.dirname(__file__), "completion.wav")
+            subprocess.Popen(["afplay", sound_path])
+        except Exception as e:
+            print(f"[Sound] Error: {e}")
 
     def _cal_camera_loop(self):
         if self._cal_done:
@@ -723,8 +730,11 @@ class AppWindow(ctk.CTk):
         self._cal_collecting = False
         samples = self._cal_samples[:]
         step    = CAL_STEPS[self._cal_step]
+
         self._cal_status_lbl.configure(text=f"✓ {step['title']} captured!", text_color=GREEN)
+        self._play_calibration_sound()
         self._cal_prog.set(1)
+
         if self._cal_step == 0:
             self._cal_open_avg = float(np.mean(samples))
         elif self._cal_step == 1:
@@ -732,6 +742,7 @@ class AppWindow(ctk.CTk):
             self._ear_threshold = (self._cal_open_avg + closed_avg) / 2.0
         elif self._cal_step == 2:
             self._pitch_baseline = float(np.mean(samples))
+
         if self._cal_step < 2:
             self._cal_step += 1
             self.after(800, self._update_cal_step_ui)

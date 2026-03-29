@@ -1,5 +1,4 @@
 import threading
-import time
 from elevenlabs.client import ElevenLabs
 from elevenlabs import stream
 
@@ -17,4 +16,5 @@ def speak(text):
 
 if __name__ == "__main__":
     speak("Warning! You have been driving with your eyes closed. Please pull over.")
+    import time
     time.sleep(5)

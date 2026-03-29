@@ -11,6 +11,9 @@ from voice import start_voice_listener, consume_stop
 from alert import speak
 from chat import handle_chat
 from auth import run_auth, save_calibration
+from weather_greeting import greet
+from weather_greeting import get_weather_overlay
+
 
 mp_face_mesh = mp.solutions.face_mesh
 
@@ -98,6 +101,7 @@ with mp_face_mesh.FaceMesh(
         EAR_THRESHOLD  = user["ear_threshold"]
         PITCH_BASELINE = user["pitch_baseline"]
         print(f"[Auth] Calibration loaded — EAR: {EAR_THRESHOLD:.3f}, Pitch: {PITCH_BASELINE:.2f}")
+    greet()
     NOD_THRESHOLD = PITCH_BASELINE + NOD_PITCH_OFFSET
 
     while cap.isOpened():
@@ -248,7 +252,12 @@ with mp_face_mesh.FaceMesh(
                             duration_str = f"{elapsed_min} minute{'s' if elapsed_min != 1 else ''}"
                         speak(f"Hey, you've been driving for {duration_str}. Consider taking a short break to stay safe.")
                         last_reminder_t = now
-
+        desc, temp = get_weather_overlay()
+        weather_text = f"{temp}F  {desc}"
+        text_size = cv2.getTextSize(weather_text, cv2.FONT_HERSHEY_SIMPLEX, 0.65, 2)[0]
+        cv2.putText(frame, weather_text,
+                    (w - text_size[0] - 20, 40),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.65, (255, 255, 255), 2)
         cv2.imshow("Tiredness Tracker", frame)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break

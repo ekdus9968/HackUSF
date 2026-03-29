@@ -252,6 +252,7 @@ with mp_face_mesh.FaceMesh(
                             duration_str = f"{elapsed_min} minute{'s' if elapsed_min != 1 else ''}"
                         speak(f"Hey, you've been driving for {duration_str}. Consider taking a short break to stay safe.")
                         last_reminder_t = now
+        #weather display
         desc, temp = get_weather_overlay()
         weather_text = f"{temp}F  {desc}"
         text_size = cv2.getTextSize(weather_text, cv2.FONT_HERSHEY_SIMPLEX, 0.65, 2)[0]

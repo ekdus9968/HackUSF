@@ -1,8 +1,11 @@
 import threading
 from elevenlabs.client import ElevenLabs
 from elevenlabs import stream
+import os
+from dotenv import load_dotenv
 
-client = ElevenLabs(api_key="sk_1c15f9436483d5e3b710e8d18ec90f60077f5415636769fa")
+load_dotenv()
+client = ElevenLabs(api_key= os.getenv("ELEVENLABS_API_KEY"))
 
 def speak(text):
     def _speak():

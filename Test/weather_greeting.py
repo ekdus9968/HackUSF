@@ -3,8 +3,11 @@ import threading
 import urllib.request
 import json
 from alert import speak
+import os
+from dotenv import load_dotenv
 
-API_KEY = "f6bf7c9bed794f06acf51954262903"
+load_dotenv()
+API_KEY = os.getenv("WEATHER_API_KEY")
 CITY    = "Tampa"  # change to your city
 
 def get_weather():

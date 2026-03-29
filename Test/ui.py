@@ -1012,79 +1012,126 @@ class AppWindow(ctk.CTk):
         session_id = state.get("session_id")
         user       = self._user or {}
         user_name  = f"{user.get('first_name','')} {user.get('last_name','')}".strip() or "Driver"
-
-        # Launch matplotlib report immediately
-        if session_id and session_id > 0:
-            threading.Thread(
-                target=self._launch_matplotlib_report,
-                args=(session_id, user_name, user.get("user_id", "guest")),
-                daemon=True
-            ).start()
+        user_id    = user.get("user_id", "guest")
 
         outer = ctk.CTkFrame(self, fg_color=BG)
         outer.pack(fill="both", expand=True)
 
-        stats_card = ctk.CTkFrame(outer, fg_color=CARD, corner_radius=16,
-                                border_width=1, border_color=BORDER,
-                                width=480, height=500)
-        stats_card.place(relx=0.5, rely=0.5, anchor="center")
-        stats_card.pack_propagate(False)
+        # Tab bar
+        tab_bar = ctk.CTkFrame(outer, fg_color=PANEL, height=40,
+                            corner_radius=0, border_width=1, border_color=BORDER)
+        tab_bar.pack(fill="x")
+        tab_bar.pack_propagate(False)
 
-        stats = ctk.CTkFrame(stats_card, fg_color="transparent")
-        stats.pack(padx=32, pady=32, fill="both", expand=True)
+        # Canvas for graph image
+        self._report_canvas = ctk.CTkCanvas(outer, bg="#0a0c0f", highlightthickness=0)
+        self._report_canvas.pack(fill="both", expand=True)
 
-        ctk.CTkLabel(stats, text="◉",
-                    font=ctk.CTkFont(family="Courier", size=36),
-                    text_color=AMBER).pack(pady=(0, 4))
-        ctk.CTkLabel(stats, text="SESSION COMPLETE",
-                    font=ctk.CTkFont(family="Courier", size=16, weight="bold"),
-                    text_color=TEXT).pack(pady=(0, 4))
-        ctk.CTkLabel(stats, text="Your drive report is opening...",
-                    font=ctk.CTkFont(family="Courier", size=10),
-                    text_color=TEXT2).pack(pady=(0, 20))
+        # Loading label
+        self._report_loading = ctk.CTkLabel(
+            outer, text="Building your report...",
+            font=ctk.CTkFont(family="Courier", size=13),
+            text_color=TEXT2, fg_color="transparent"
+        )
+        self._report_loading.place(relx=0.5, rely=0.5, anchor="center")
 
-        elapsed = int(time.time() - self._session_start) if self._session_start else 0
-        h = elapsed // 3600
-        m = (elapsed % 3600) // 60
-        s = elapsed % 60
-        duration_str = f"{h:02d}:{m:02d}:{s:02d}"
+        # Bottom bar
+        bottom = ctk.CTkFrame(outer, fg_color=PANEL, height=52,
+                            corner_radius=0, border_width=1, border_color=BORDER)
+        bottom.pack(fill="x", side="bottom")
+        bottom.pack_propagate(False)
 
-        stage_counts = {1: 0, 2: 0, 3: 0}
-        for _, st in self._alert_log:
-            stage_counts[st] = stage_counts.get(st, 0) + 1
-
-        for label, value in [
-            ("DURATION",     duration_str),
-            ("TOTAL ALERTS", str(len(self._alert_log))),
-            ("STAGE 1",      str(stage_counts[1])),
-            ("STAGE 2",      str(stage_counts[2])),
-            ("SMS SENT",     str(stage_counts[3])),
-        ]:
-            row = ctk.CTkFrame(stats, fg_color=PANEL, corner_radius=6)
-            row.pack(fill="x", pady=3)
-            ctk.CTkLabel(row, text=label,
-                        font=ctk.CTkFont(family="Courier", size=9),
-                        text_color=TEXT2).pack(anchor="w", padx=12, pady=(8, 0))
-            ctk.CTkLabel(row, text=value,
-                        font=ctk.CTkFont(family="Courier", size=18, weight="bold"),
-                        text_color=AMBER).pack(anchor="w", padx=12, pady=(0, 8))
-
-        ctk.CTkFrame(stats, fg_color="transparent").pack(fill="y", expand=True)
-
-        ctk.CTkButton(stats, text="CLOSE APP",
+        ctk.CTkButton(bottom, text="CLOSE APP",
                     command=self._on_close,
                     font=ctk.CTkFont(family="Courier", size=12, weight="bold"),
                     fg_color=BORDER, hover_color=BORDER2,
-                    text_color=TEXT, corner_radius=6, height=42).pack(fill="x")
-    
-    def _launch_matplotlib_report(self, session_id, user_name, user_id):
+                    text_color=TEXT, corner_radius=6,
+                    width=160, height=34).pack(side="right", padx=16, pady=9)
+
+        # Tab buttons
+        self._report_tab = "session"
+
+        def show_session_tab():
+            self._report_tab = "session"
+            session_btn.configure(fg_color=AMBER, text_color="#000")
+            history_btn.configure(fg_color="transparent", text_color=TEXT2)
+            self._render_report_figure(session_id, user_name, user_id, "session")
+
+        def show_history_tab():
+            self._report_tab = "history"
+            history_btn.configure(fg_color=AMBER, text_color="#000")
+            session_btn.configure(fg_color="transparent", text_color=TEXT2)
+            self._render_report_figure(session_id, user_name, user_id, "history")
+
+        session_btn = ctk.CTkButton(tab_bar, text="THIS SESSION",
+                                    command=show_session_tab,
+                                    font=ctk.CTkFont(family="Courier", size=11, weight="bold"),
+                                    fg_color=AMBER, hover_color=AMBER2,
+                                    text_color="#000", width=140, height=28, corner_radius=4)
+        session_btn.pack(side="left", padx=8, pady=6)
+
+        history_btn = ctk.CTkButton(tab_bar, text="DRIVE HISTORY",
+                                    command=show_history_tab,
+                                    font=ctk.CTkFont(family="Courier", size=11, weight="bold"),
+                                    fg_color="transparent", hover_color=PANEL,
+                                    text_color=TEXT2, border_width=1, border_color=BORDER,
+                                    width=140, height=28, corner_radius=4)
+        history_btn.pack(side="left", padx=4, pady=6)
+
+        ctk.CTkLabel(tab_bar, text="Session saved ✓",
+                    font=ctk.CTkFont(family="Courier", size=10),
+                    text_color=GREEN).pack(side="right", padx=16)
+
+        # Auto-load session tab
+        threading.Thread(
+            target=self._render_report_figure,
+            args=(session_id, user_name, user_id, "session"),
+            daemon=True
+        ).start()
+
+    def _render_report_figure(self, session_id, user_name, user_id, tab):
+        """Render matplotlib figure to PNG and display on canvas."""
         try:
-            from report import show_session_report, show_history_report
-            self.after(0, lambda: show_session_report(session_id, user_name))
-            if user_id != "guest":
-                self.after(100, lambda: show_history_report(user_id, user_name))
+            import io
+            from report import get_session_figure, get_history_figure
+
+            if tab == "session":
+                fig = get_session_figure(session_id or -1, user_name)
+            else:
+                fig = get_history_figure(user_id, user_name)
+
+            buf = io.BytesIO()
+            fig.savefig(buf, format="png", dpi=96, bbox_inches="tight",
+                        facecolor="#0a0c0f")
+            buf.seek(0)
+            img = Image.open(buf).copy()
+            plt_img = img
+
+            def update():
+                try:
+                    cw = self._report_canvas.winfo_width()
+                    ch = self._report_canvas.winfo_height()
+                    if cw > 10 and ch > 10:
+                        img_resized = plt_img.resize((cw, ch), Image.LANCZOS)
+                    else:
+                        img_resized = plt_img
+                    self._report_photo = ImageTk.PhotoImage(img_resized)
+                    self._report_canvas.delete("all")
+                    self._report_canvas.create_image(0, 0, anchor="nw", image=self._report_photo)
+                    self._report_loading.place_forget()
+                except Exception as e:
+                    print(f"[Report] UI update error: {e}")
+
+            self.after(0, update)
+
         except Exception as e:
-            print(f"[Report] Error: {e}")
+            print(f"[Report] Render error: {e}")
+            def show_err():
+                try:
+                    self._report_loading.configure(text=f"Report error: {e}")
+                except Exception:
+                    pass
+            self.after(0, show_err)
 
     # =========================================================================
     # Camera management

@@ -39,10 +39,6 @@ def run():
     # ── Voice listener ────────────────────────────────────────────────────────
     start_voice_listener(chat_handler=handle_chat)
 
-    # ── Emergency contact from state ──────────────────────────────────────────
-    contact_name  = state.get("contact_name", "")
-    contact_email = state.get("contact_email", "")
-
     # ── Camera ────────────────────────────────────────────────────────────────
     cap = cv2.VideoCapture(0, cv2.CAP_AVFOUNDATION)
 
@@ -197,6 +193,9 @@ def run():
                                 last_sound_t = now
                             elif alert_level == 3:
                                 print("CRITICAL")
+                                # Read fresh values from state (user may have updated profile)
+                                contact_name = state.get("contact_name", "")
+                                contact_email = state.get("contact_email", "")
                                 send_critical_alert(contact_name, contact_email)
                             elif alert_level == 0:
                                 last_sound_t   = 0.0

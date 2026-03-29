@@ -1052,6 +1052,17 @@ class AppWindow(ctk.CTk):
         self._slider.set(25)
         self._slider.pack(side="left", fill="x", expand=True, padx=(0, 8))
 
+        # Noctua logo
+        logo_path = os.path.join(os.path.dirname(__file__), "Noctua symbol no BG.png")
+        if os.path.exists(logo_path):
+            try:
+                logo_img = Image.open(logo_path).convert("RGBA").resize((300, 300))
+                self._logo_photo = ctk.CTkImage(logo_img, size=(300, 300))
+                logo_label = ctk.CTkLabel(parent, image=self._logo_photo, text="", fg_color="transparent")
+                logo_label.pack(pady=(12, 8))
+            except Exception:
+                pass
+
         ctk.CTkFrame(parent, fg_color="transparent").pack(fill="y", expand=True)
 
         gem_card = ctk.CTkFrame(parent, fg_color="#0A1A0F", corner_radius=12,

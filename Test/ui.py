@@ -6,6 +6,7 @@
 # Dashboard: cockpit instrument panel — EAR ring, PERCLOS arc, alert log
 # =============================================================================
 
+import os
 import cv2
 import math
 import time
@@ -24,19 +25,19 @@ ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("dark-blue")
 
 # ── Theme ─────────────────────────────────────────────────────────────────────
-BG     = "#080C12"
-PANEL  = "#0D1219"
-BORDER = "#1A2332"
-BORDER2= "#243040"
-AMBER  = "#F5A623"
-AMBER2 = "#E8920D"
-GREEN  = "#00E87A"
-RED    = "#FF3A3A"
-CYAN   = "#00C8E8"
-TEXT   = "#C8D8E8"
-TEXT2  = "#607080"
-TEXT3  = "#405060"
-CARD   = "#0F1520"
+BG     = "#0A0E1A"   # deep navy — matches logo background
+PANEL  = "#0D1224"   # slightly lighter navy
+BORDER = "#1A2440"   # navy border
+BORDER2= "#243660"   # brighter border
+AMBER  = "#E8A020"   # gold — matches owl color
+AMBER2 = "#D4901A"   # darker gold for hover
+GREEN  = "#00E87A"   # keep — safe status
+RED    = "#FF3A3A"   # keep — danger
+CYAN   = "#4A7FD4"   # owl eye blue — replaces cyan
+TEXT   = "#D8E4F8"   # slightly blue-tinted white
+TEXT2  = "#5A7090"   # muted blue-grey
+TEXT3  = "#384860"   # darker muted
+CARD   = "#0F1428"   # card background
 
 # ── Calibration steps ─────────────────────────────────────────────────────────
 CAL_STEPS = [
@@ -77,6 +78,8 @@ class AppWindow(ctk.CTk):
         self._session_start      = None
 
         self._show_welcome()
+        _welcome_playing = False
+        _welcome_cap = None
 
     # =========================================================================
     # Shared helpers
@@ -87,7 +90,7 @@ class AppWindow(ctk.CTk):
                            corner_radius=0, border_width=1, border_color=BORDER)
         bar.pack(fill="x", side="top")
         bar.pack_propagate(False)
-        ctk.CTkLabel(bar, text="Noctua",
+        ctk.CTkLabel(bar, text="Notua",
                      font=ctk.CTkFont(family="Courier", size=13, weight="bold"),
                      text_color=AMBER).pack(side="left", padx=16)
         if subtitle:
@@ -144,26 +147,68 @@ class AppWindow(ctk.CTk):
     # =========================================================================
     # Page 1 — Welcome
     # =========================================================================
-
     def _show_welcome(self):
         self._clear()
         self._stop_camera()
-        self._title_bar()
-        _, _, inner = self._card(460, 400)
 
-        ctk.CTkLabel(inner, text="◉",
-                     font=ctk.CTkFont(family="Courier", size=72),
-                     text_color=AMBER).pack(pady=(0, 4))
-        ctk.CTkLabel(inner, text="Noctua",
-                     font=ctk.CTkFont(family="Courier", size=30, weight="bold"),
-                     text_color=TEXT).pack()
-        ctk.CTkLabel(inner, text="driver awareness system",
-                     font=ctk.CTkFont(family="Courier", size=11),
-                     text_color=TEXT2).pack(pady=(4, 32))
-        self._btn(inner, "GET STARTED →", self._show_signin)
-        ctk.CTkLabel(inner, text="hackusf 2025 · v1.0",
-                     font=ctk.CTkFont(family="Courier", size=9),
-                     text_color=BORDER).pack(pady=(20, 0))
+        # Full screen canvas for video background
+        outer = ctk.CTkFrame(self, fg_color=BG)
+        outer.pack(fill="both", expand=True)
+
+        self._welcome_canvas = ctk.CTkCanvas(outer, bg="#000", highlightthickness=0)
+        self._welcome_canvas.pack(fill="both", expand=True)
+
+        # Load video
+        import os
+        video_path = os.path.join(os.path.dirname(__file__), "Welcome To Noctua.mp4")
+        self._welcome_cap = cv2.VideoCapture(video_path)
+        self._welcome_playing = True
+
+        # GET STARTED button overlaid on top
+        btn = ctk.CTkButton(
+            outer,
+            text="GET STARTED →",
+            command=self._stop_welcome_and_start,
+            font=ctk.CTkFont(family="Courier", size=14, weight="bold"),
+            fg_color=AMBER, hover_color=AMBER2,
+            text_color="#000",
+            width=260, height=52, corner_radius=8
+        )
+        btn.place(relx=0.5, rely=0.88, anchor="center")
+
+        self._play_welcome_video()
+
+    def _play_welcome_video(self):
+        if not self._welcome_playing:
+            return
+
+        ret, frame = self._welcome_cap.read()
+        if not ret:
+            # Loop — restart video
+            self._welcome_cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+            self.after(33, self._play_welcome_video)
+            return
+
+        try:
+            cw = self._welcome_canvas.winfo_width()
+            ch = self._welcome_canvas.winfo_height()
+            if cw > 1 and ch > 1:
+                frame = cv2.resize(frame, (cw, ch))
+            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            img = Image.fromarray(frame_rgb)
+            self._welcome_photo = ImageTk.PhotoImage(image=img)
+            self._welcome_canvas.delete("all")
+            self._welcome_canvas.create_image(0, 0, anchor="nw", image=self._welcome_photo)
+        except Exception:
+            pass
+
+        self.after(33, self._play_welcome_video)
+
+    def _stop_welcome_and_start(self):
+        self._welcome_playing = False
+        if hasattr(self, '_welcome_cap') and self._welcome_cap:
+            self._welcome_cap.release()
+        self._show_signin()
 
     # =========================================================================
     # Page 2 — Sign In

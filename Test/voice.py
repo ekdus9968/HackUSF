@@ -8,6 +8,9 @@ stop_triggered = [False]
 # Accept multiple variations for robustness
 WAKE_WORDS = ["hey smart car", "hey car", "smart car", "hey smartcar"]
 
+# Stop command variations
+STOP_WORDS = ["stop", "pause", "quiet", "silence", "halt", "cancel"]
+
 # Listening mode state
 _chat_handler = None   # set by start_voice_listener()
 
@@ -20,17 +23,24 @@ def _listen_loop():
     with mic as source:
         r.adjust_for_ambient_noise(source, duration=1)
 
+    # Improve recognition accuracy
+    r.energy_threshold = 4000  # Sensitivity
+    r.dynamic_energy_threshold = True
+
     print("[Voice] Listener started — say 'stop' to dismiss alerts, 'hey smart car' to chat.")
 
     while True:
         try:
             with mic as source:
-                audio = r.listen(source, timeout=3, phrase_time_limit=5)
+                # Increased timeout to 5s to give user time to respond
+                # Reduced phrase_time_limit to 3s to process quickly
+                audio = r.listen(source, timeout=5, phrase_time_limit=3)
             text = r.recognize_google(audio, language="en-US").lower()
             print(f"[Voice] Heard: '{text}'")
 
             # ── STOP alert ────────────────────────────────────────
-            if "stop" in text:
+            if any(word in text for word in STOP_WORDS):
+                print(f"[Voice] STOP command detected: '{text}'")
                 stop_triggered[0] = True
 
             # ── Wake word → chat mode ─────────────────────────────
@@ -49,6 +59,8 @@ def _listen_loop():
             pass
         except sr.UnknownValueError:
             pass
+        except sr.RequestError as e:
+            print(f"[Voice] API error: {e}")
         except Exception as e:
             print(f"[Voice] Error: {e}")
 

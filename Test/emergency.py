@@ -3,6 +3,7 @@
 # Cockpit aesthetic, matches auth.py and calibration.py
 # =============================================================================
 
+import os
 import sys
 import customtkinter as ctk
 
@@ -64,9 +65,13 @@ def get_emergency_contact():
     inner = ctk.CTkFrame(card, fg_color="transparent")
     inner.place(relx=0.5, rely=0.5, anchor="center")
 
-    # Icon
-    ctk.CTkLabel(inner, text="🚨",
-                 font=ctk.CTkFont(size=52)).pack(pady=(0, 8))
+    #siren icon
+    siren_path = os.path.join(os.path.dirname(__file__), "icons8-alert-100.png")
+    if os.path.exists(siren_path):
+        siren_img = ctk.CTkImage(Image.open(siren_path).convert("RGBA"), size=(80, 80))
+        ctk.CTkLabel(inner, image=siren_img, text="", fg_color="transparent").pack(pady=(0, 8))
+    else:
+        ctk.CTkLabel(inner, text="🚨", font=ctk.CTkFont(size=52)).pack(pady=(0, 8))
 
     # Title
     ctk.CTkLabel(inner, text="EMERGENCY CONTACT",

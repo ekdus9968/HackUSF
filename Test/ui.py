@@ -36,9 +36,9 @@ TEXT3   = "#384860"
 CARD    = "#0F1428"
 
 CAL_STEPS = [
-    {"title": "OPEN EYES",     "instruction": "Look straight at the camera with your eyes fully open.", "sub": "Hold still — we're measuring your natural eye openness.", "color": GREEN, "icon": "👁",  "samples": 60},
-    {"title": "CLOSE EYES",    "instruction": "Now slowly close your eyes completely.",                  "sub": "Keep your head still — this sets your closed-eye baseline.", "color": AMBER, "icon": "😑", "samples": 60},
-    {"title": "LOOK STRAIGHT", "instruction": "Open your eyes and look straight ahead naturally.",       "sub": "This calibrates your head pose — no need to tilt.",         "color": CYAN,  "icon": "⬆",  "samples": 60},
+    {"title": "OPEN EYES",     "instruction": "Look straight at the camera with your eyes fully open.", "sub": "Hold still — we're measuring your natural eye openness.", "color": GREEN, "samples": 60},
+    {"title": "CLOSE EYES",    "instruction": "Now slowly close your eyes completely.",                  "sub": "Keep your head still — this sets your closed-eye baseline.", "color": AMBER, "samples": 60},
+    {"title": "LOOK STRAIGHT", "instruction": "Open your eyes and look straight ahead naturally.",       "sub": "This calibrates your head pose — no need to tilt.",         "color": CYAN, "samples": 60},
 ]
 
 
@@ -489,15 +489,19 @@ class AppWindow(ctk.CTk):
 
     def _show_emergency(self):
         self._clear()
-        _, _, inner = self._card(520, 520)
+        _, _, inner = self._card(560, 600)
+        siren_path = os.path.join(os.path.dirname(__file__), "icons8-alert-100.png")
+        if os.path.exists(siren_path):
+            siren_img = ctk.CTkImage(Image.open(siren_path).convert("RGBA"), size=(80, 80))
+            ctk.CTkLabel(inner, image=siren_img, text="", fg_color="transparent").pack(pady=(0, 8))
+        else:
+            ctk.CTkLabel(inner, text="🚨", font=ctk.CTkFont(size=52)).pack(pady=(0, 8))
 
-        ctk.CTkLabel(inner, text="🚨",
-                     font=ctk.CTkFont(size=52)).pack(pady=(0, 8))
         ctk.CTkLabel(inner, text="EMERGENCY CONTACT",
                      font=ctk.CTkFont(family="MuseoModerno", size=22, weight="bold"),
                      text_color=AMBER).pack(pady=(0, 4))
         ctk.CTkLabel(inner, text="If a critical alert fires, we'll notify this person.",
-                     font=ctk.CTkFont(family="Inter", size=10),
+                     font=ctk.CTkFont(family="Inter", size=11),
                      text_color=TEXT2).pack(pady=(0, 24))
 
         ctk.CTkLabel(inner, text="CONTACT NAME",
@@ -535,8 +539,8 @@ class AppWindow(ctk.CTk):
         self._btn(inner, "SAVE CONTACT", confirm)
         self._btn(inner, "Skip for now", skip, outline=True)
         ctk.CTkLabel(inner, text="You can update this later in settings.",
-                     font=ctk.CTkFont(family="Inter", size=9),
-                     text_color=BORDER).pack(pady=(12, 0))
+                     font=ctk.CTkFont(family="Inter", size=11),
+                     text_color=TEXT2).pack(pady=(12, 0))
 
         self.bind("<Return>", lambda e: confirm())
         name_e.focus()
@@ -605,8 +609,7 @@ class AppWindow(ctk.CTk):
                                           font=ctk.CTkFont(family="Inter", size=10),
                                           text_color=TEXT2)
         self._cal_step_lbl.pack(pady=(0, 8))
-        self._cal_icon_lbl = ctk.CTkLabel(panel, text="👁",
-                                          font=ctk.CTkFont(size=56))
+        self._cal_icon_lbl = ctk.CTkLabel(panel, text="", fg_color="transparent")
         self._cal_icon_lbl.pack(pady=(0, 10))
         self._cal_title_lbl = ctk.CTkLabel(panel, text="",
                                            font=ctk.CTkFont(family="Inter", size=20, weight="bold"),
@@ -647,7 +650,13 @@ class AppWindow(ctk.CTk):
             else:
                 dot.configure(text_color=BORDER); lbl.configure(text_color=TEXT2)
         self._cal_step_lbl.configure(text=f"STEP {self._cal_step + 1} OF 3")
-        self._cal_icon_lbl.configure(text=step["icon"])
+        icons = ["icons8-eye-100.png", "icons8-closed-eye-100.png", "icons8-up-arrow-100.png"]
+        img_path = os.path.join(os.path.dirname(__file__), icons[self._cal_step])
+        if os.path.exists(img_path):
+            img = ctk.CTkImage(Image.open(img_path).convert("RGBA"), size=(80, 80))
+            self._cal_icon_lbl.configure(image=img, text="")
+        else:
+            self._cal_icon_lbl.configure(image=None, text="")
         self._cal_title_lbl.configure(text=step["title"], text_color=step["color"])
         self._cal_instr_lbl.configure(text=step["instruction"])
         self._cal_sub_lbl.configure(text=step["sub"])
@@ -1143,20 +1152,6 @@ class AppWindow(ctk.CTk):
                 self._weather_card.place_forget()
             except Exception:
                 pass
-
-        self.alert_overlay = ctk.CTkLabel(parent, text="",
-                                          font=ctk.CTkFont(family="Inter", size=16, weight="bold"),
-                                          text_color=RED, fg_color="transparent")
-        self.alert_overlay.place(relx=0.5, rely=0.05, anchor="n")
-
-        self.stop_btn = ctk.CTkButton(
-            parent, text="STOP ALARM",
-            command=self._stop_alarm,
-            font=ctk.CTkFont(family="Inter", size=14, weight="bold"),
-            fg_color=RED, hover_color="#CC2222",
-            text_color="#FFFFFF", width=200, height=52, corner_radius=8
-        )
-        self.stop_btn.place_forget()
 
     # =========================================================================
     # Dashboard loop

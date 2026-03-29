@@ -1,4 +1,3 @@
-from detection import run
-
+import detection
 if __name__ == "__main__":
     run()

@@ -11,6 +11,9 @@ from voice import start_voice_listener, consume_stop
 from alert import speak
 from chat import handle_chat
 from auth import run_auth, save_calibration
+from fatigue import FatigueDetector
+from session import SessionRecorder
+from report import show_session_report
 
 mp_face_mesh = mp.solutions.face_mesh
 
@@ -33,6 +36,27 @@ def draw_stop_button(frame):
 def is_btn_clicked(x, y):
     return (BTN["x"] <= x <= BTN["x"] + BTN["w"] and
             BTN["y"] <= y <= BTN["y"] + BTN["h"])
+
+
+# ── TERMINATE button ─────────────────────────────────────────────
+TBTN = {"x": 20, "y": 260, "w": 160, "h": 42}
+
+def draw_terminate_button(frame):
+    cv2.rectangle(frame,
+                  (TBTN["x"], TBTN["y"]),
+                  (TBTN["x"] + TBTN["w"], TBTN["y"] + TBTN["h"]),
+                  (20, 20, 20), -1)
+    cv2.rectangle(frame,
+                  (TBTN["x"], TBTN["y"]),
+                  (TBTN["x"] + TBTN["w"], TBTN["y"] + TBTN["h"]),
+                  (80, 80, 80), 1)
+    cv2.putText(frame, " END DRIVE",
+                (TBTN["x"] + 8, TBTN["y"] + 28),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.7, (180, 180, 180), 2)
+
+def is_terminate_clicked(x, y):
+    return (TBTN["x"] <= x <= TBTN["x"] + TBTN["w"] and
+            TBTN["y"] <= y <= TBTN["y"] + TBTN["h"])
 
 # Authentication
 user = run_auth()
@@ -73,7 +97,9 @@ waiting_stop   = False
 waiting_level  = 0
 
 # Prevent duplicate CRITICAL voice alert
-spoke_critical = False
+spoke_critical    = False
+terminate_drive   = False
+_prev_fatigue_flags = []
 
 with mp_face_mesh.FaceMesh(
     max_num_faces=1,
@@ -94,6 +120,10 @@ with mp_face_mesh.FaceMesh(
         PITCH_BASELINE = user["pitch_baseline"]
         print(f"[Auth] Calibration loaded — EAR: {EAR_THRESHOLD:.3f}, Pitch: {PITCH_BASELINE:.2f}")
     NOD_THRESHOLD = PITCH_BASELINE + NOD_PITCH_OFFSET
+
+    # Init fatigue detector and session recorder
+    fatigue_detector = FatigueDetector(ear_threshold=EAR_THRESHOLD)
+    session_recorder = SessionRecorder(user_id=user["user_id"])
 
     while cap.isOpened():
         ret, frame = cap.read()
@@ -235,9 +265,34 @@ with mp_face_mesh.FaceMesh(
                     if alert_level >= 1:
                         draw_stop_button(frame)
 
+                # ── Fatigue signals (terminal only) ──────────────
+                fatigue_detector.update(face_landmarks, w, h, avg_EAR)
+                if fatigue_detector.fatigue_flags != _prev_fatigue_flags:
+                    fatigue_detector.print_status()
+                    _prev_fatigue_flags = list(fatigue_detector.fatigue_flags)
+                session_recorder.update(
+                    alert_level  = alert_level,
+                    ear          = avg_EAR,
+                    pitch        = float(pitch) if pitch is not None else 0.0,
+                    blink_rate   = fatigue_detector.blink_rate,
+                    perclos      = fatigue_detector.perclos,
+                    fatigue_score= fatigue_detector.fatigue_score,
+                )
+
+        draw_terminate_button(frame)
         cv2.imshow("Tiredness Tracker", frame)
-        if cv2.waitKey(1) & 0xFF == ord('q'):
+        key = cv2.waitKey(1) & 0xFF
+        if key == ord('q') or terminate_drive:
             break
+        if clicked[0] and is_terminate_clicked(*click_pos[0]):
+            clicked[0] = False
+            terminate_drive = True
+            continue
+
+    # Save session and show report on quit
+    session_id = session_recorder.save()
+    if session_id > 0 and user["user_id"] != "guest":
+        show_session_report(session_id, f"{user['first_name']} {user['last_name']}")
 
 cap.release()
 cv2.destroyAllWindows()

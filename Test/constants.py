@@ -4,7 +4,7 @@ import cv2
 LEFT_EYE  = [362, 385, 387, 263, 373, 380]
 RIGHT_EYE = [33, 160, 158, 133, 153, 144]
 
-# Head pose landmarks (solvePnP용)
+# Head pose landmarks (solvePnP)
 # 
 HEAD_POSE_POINTS = [1, 152, 4, 263, 33, 287, 57]
 

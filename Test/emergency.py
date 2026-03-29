@@ -41,7 +41,7 @@ def get_emergency_contact():
         cv2.imshow("Setup", canvas)
         key = cv2.waitKey(20) & 0xFF
 
-        if key == 27:           # ESC → 건너뜀
+        if key == 27:           # ESC → skip
             break
         elif key == 13:         # ENTER
             if field == 0 and name:

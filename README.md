@@ -34,7 +34,7 @@ Noctua monitors driver alertness in real-time using a webcam. It detects eye clo
 
 ## Project Structure
 
-noctua/
+'''noctua/
 │
 ├── ui.py               # Main app window (CustomTkinter) — run this
 ├── detection.py        # Core detection loop (eye + head pose + alerts)

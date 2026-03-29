@@ -2,7 +2,7 @@
 # Noctua — Driver Drowsiness Detection System
 
 Real-time driver awareness system using computer vision, voice interaction, and AI-powered conversation.  
-Built for HackUSF 2025.
+Built for HackUSF 2026.
 
 ---
 

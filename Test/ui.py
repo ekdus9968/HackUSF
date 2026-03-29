@@ -955,18 +955,7 @@ class AppWindow(ctk.CTk):
             self.stop_btn.place(relx=0.5, rely=0.88, anchor="center")
         else:
             self.stop_btn.place_forget()
-
-        alert_count = len(self._alert_log)
-        fatigue_flags = state.get("fatigue_flags", [])
-        if alert_count == 0:
-            self._gemini_lbl.configure(text="Monitoring active. No events yet.")
-        elif fatigue_flags:
-            self._gemini_lbl.configure(text=f"Signals: {', '.join(fatigue_flags)}. {alert_count} alert(s) so far.")
-        elif alert_count == 1:
-            self._gemini_lbl.configure(text="1 alert so far. Stay focused.")
-        else:
-            self._gemini_lbl.configure(text=f"{alert_count} alerts. Consider a break soon.")
-
+            
         self.after(33, self._dashboard_loop)
 
     def _add_log_entry(self, stage):

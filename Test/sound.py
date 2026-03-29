@@ -15,3 +15,6 @@ def play_beep():
  
 def play_warning():
     play_sound("beep.wav")
+
+def play_complete():
+    play_sound("completion.wav")

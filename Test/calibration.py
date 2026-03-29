@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+from sound import play_complete
 from constants import LEFT_EYE, RIGHT_EYE, calculate_EAR, calculate_pitch
 
 
@@ -37,6 +38,7 @@ def calibrate(face_mesh, cap):
         if key == ord(' ') and not collecting:
             collecting = True
         if len(open_ears) >= 60:
+            play_complete()
             break
 
     # Collect closed EAR
@@ -69,6 +71,7 @@ def calibrate(face_mesh, cap):
         if key == ord(' ') and not collecting:
             collecting = True
         if len(closed_ears) >= 60:
+            play_complete()
             break
 
     open_avg   = np.mean(open_ears)
@@ -104,6 +107,7 @@ def calibrate(face_mesh, cap):
         if key == ord(' ') and not collecting:
             collecting = True
         if len(pitch_samples) >= 60:
+            play_complete()
             break
 
     pitch_baseline = float(np.mean(pitch_samples))

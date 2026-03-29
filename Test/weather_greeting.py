@@ -7,7 +7,7 @@ import os
 from dotenv import load_dotenv
 
 load_dotenv()
-API_KEY = os.getenv("WEATHER_API_KEY")
+API_KEY = os.getenv("WEATHERAPI_KEY")
 CITY    = "Tampa"  # change to your city
 
 def get_weather():
@@ -19,10 +19,12 @@ def get_weather():
     return desc, temp
 
 def greet():
-    desc, temp = get_weather()
-    message = f"Welcome. The weather is {desc}, {temp} degrees. Have a safe drive."
-    print(message)
-    speak(message)
+    def _greet():
+        desc, temp = get_weather()
+        message = f"Welcome. The weather is {desc}, {temp} degrees. Have a safe drive."
+        print(message)
+        speak(message)
+    threading.Thread(target=_greet, daemon=True).start()
 
 _weather_cache = None
 

@@ -20,6 +20,8 @@ from auth import save_calibration
 from fatigue import FatigueDetector
 from session import SessionRecorder
 from config import state
+from weather_greeting import greet
+from weather_greeting import get_weather_overlay
 
 mp_face_mesh = mp.solutions.face_mesh
 
@@ -73,6 +75,9 @@ def run():
         EAR_THRESHOLD  = state.get("ear_threshold", 0.25)
         PITCH_BASELINE = state.get("pitch_baseline", 0.0)
         NOD_THRESHOLD  = PITCH_BASELINE + NOD_PITCH_OFFSET
+
+        greet()
+        
 
         # ── Init fatigue detector + session recorder ───────────────────────────
         user           = state.get("user", {}) or {}

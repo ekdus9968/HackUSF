@@ -97,11 +97,11 @@ class CalibrationWindow(ctk.CTk):
         bar.pack_propagate(False)
 
         ctk.CTkLabel(bar, text="Noctua",
-                     font=ctk.CTkFont(family="Courier", size=13, weight="bold"),
+                     font=ctk.CTkFont(family="MuseoModerno", size=13, weight="bold"),
                      text_color=AMBER).pack(side="left", padx=16)
 
         ctk.CTkLabel(bar, text="PERSONAL CALIBRATION",
-                     font=ctk.CTkFont(family="Courier", size=11),
+                     font=ctk.CTkFont(family="MuseoModerno", size=11),
                      text_color=TEXT2).pack(side="left", padx=8)
 
         # ── Progress bar (3 dots) ──────────────────────────────────────────────
@@ -124,7 +124,7 @@ class CalibrationWindow(ctk.CTk):
             self._step_dots.append(dot)
 
             lbl = ctk.CTkLabel(col, text=step["title"],
-                               font=ctk.CTkFont(family="Courier", size=9),
+                               font=ctk.CTkFont(family="MuseoModerno", size=9),
                                text_color=TEXT2)
             lbl.pack()
             self._step_labels.append(lbl)

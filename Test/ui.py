@@ -170,7 +170,7 @@ class AppWindow(ctk.CTk):
         ctk.CTkButton(
             outer, text="GET STARTED →",
             command=self._stop_welcome_and_start,
-            font=ctk.CTkFont(family="Courier", size=14, weight="bold"),
+            font=ctk.CTkFont(family="MuseoModerno", size=14, weight="bold"),
             fg_color=AMBER, hover_color=AMBER2,
             text_color="#000", width=260, height=52, corner_radius=8
         ).place(relx=0.5, rely=0.88, anchor="center")
@@ -214,11 +214,8 @@ class AppWindow(ctk.CTk):
         _, _, inner = self._card(500, 560)
 
         ctk.CTkLabel(inner, text="SIGN IN",
-                     font=ctk.CTkFont(family="Courier", size=22, weight="bold"),
+                     font=ctk.CTkFont(family="MuseoModerno", size=22, weight="bold"),
                      text_color=AMBER).pack(pady=(0, 4))
-        ctk.CTkLabel(inner, text="welcome back",
-                     font=ctk.CTkFont(family="Courier", size=10),
-                     text_color=TEXT2).pack(pady=(0, 20))
 
         uid_e = self._entry(inner, "User ID")
         uid_e.pack(pady=(0, 10))
@@ -246,18 +243,18 @@ class AppWindow(ctk.CTk):
         row = ctk.CTkFrame(inner, fg_color="transparent")
         row.pack()
         ctk.CTkButton(row, text="Create Account", command=self._show_create,
-                      font=ctk.CTkFont(family="Courier", size=11),
+                      font=ctk.CTkFont(family="MuseoModerno", size=11),
                       fg_color="transparent", hover_color=PANEL,
                       text_color=TEXT2, border_width=1, border_color=BORDER,
                       width=184, height=40, corner_radius=6).pack(side="left", padx=(0, 8))
         ctk.CTkButton(row, text="Guest", command=self._do_guest,
-                      font=ctk.CTkFont(family="Courier", size=11),
+                      font=ctk.CTkFont(family="MuseoModerno", size=11),
                       fg_color="transparent", hover_color=PANEL,
                       text_color=TEXT2, border_width=1, border_color=BORDER,
                       width=184, height=40, corner_radius=6).pack(side="left")
 
         ctk.CTkButton(inner, text="← back", command=self._show_welcome,
-                      font=ctk.CTkFont(family="Courier", size=10),
+                      font=ctk.CTkFont(family="MuseoModerno", size=10),
                       fg_color="transparent", hover_color=PANEL,
                       text_color=TEXT2).pack(pady=(12, 0))
 
@@ -283,11 +280,8 @@ class AppWindow(ctk.CTk):
         inner.pack(padx=48, pady=24, fill="both", expand=True)
 
         ctk.CTkLabel(inner, text="CREATE ACCOUNT",
-                     font=ctk.CTkFont(family="Courier", size=20, weight="bold"),
+                     font=ctk.CTkFont(family="MuseoModerno", size=20, weight="bold"),
                      text_color=AMBER).pack(pady=(0, 4))
-        ctk.CTkLabel(inner, text="calibration runs after — saves your personal eye baseline",
-                     font=ctk.CTkFont(family="Courier", size=10),
-                     text_color=TEXT2).pack(pady=(0, 12))
 
         name_row = ctk.CTkFrame(inner, fg_color="transparent")
         name_row.pack(pady=(0, 8))
@@ -503,20 +497,20 @@ class AppWindow(ctk.CTk):
         ctk.CTkLabel(inner, text="🚨",
                      font=ctk.CTkFont(size=52)).pack(pady=(0, 8))
         ctk.CTkLabel(inner, text="EMERGENCY CONTACT",
-                     font=ctk.CTkFont(family="Courier", size=22, weight="bold"),
+                     font=ctk.CTkFont(family="MuseoModerno", size=22, weight="bold"),
                      text_color=AMBER).pack(pady=(0, 4))
         ctk.CTkLabel(inner, text="If a critical alert fires, we'll notify this person.",
                      font=ctk.CTkFont(family="Courier", size=10),
                      text_color=TEXT2).pack(pady=(0, 24))
 
         ctk.CTkLabel(inner, text="CONTACT NAME",
-                     font=ctk.CTkFont(family="Courier", size=9),
+                     font=ctk.CTkFont(family="MuseoModerno", size=9),
                      text_color=TEXT2).pack(anchor="w")
         name_e = self._entry(inner, "e.g. Jane Smith")
         name_e.pack(pady=(4, 14))
 
         ctk.CTkLabel(inner, text="CONTACT EMAIL",
-                     font=ctk.CTkFont(family="Courier", size=9),
+                     font=ctk.CTkFont(family="MuseoModerno", size=9),
                      text_color=TEXT2).pack(anchor="w")
         email_e = self._entry(inner, "e.g. jane@gmail.com")
         email_e.pack(pady=(4, 8))

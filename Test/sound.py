@@ -10,6 +10,9 @@ def play_sound(path):
             print(f"[Sound Error] {path}: {e}")
     threading.Thread(target=_play, daemon=True).start()
 
+def play_complete():
+    play_sound("completion.wav")
+    
 def play_beep():
     play_sound("warning.wav")
 

@@ -1,5 +1,5 @@
 # =============================================================================
-# auth.py — Noctura authentication
+# auth.py — Noctua authentication
 # Backend: SQLite, unchanged.
 # UI: customtkinter, cockpit aesthetic, matches ui.py
 # =============================================================================
@@ -165,7 +165,7 @@ class AuthWindow(ctk.CTk):
 
     def __init__(self):
         super().__init__()
-        self.title("Noctura")
+        self.title("Noctua")
         self.configure(fg_color=BG)
         self.resizable(True, True)
         self.after(100, lambda: self.state("zoomed"))
@@ -213,7 +213,7 @@ class AuthWindow(ctk.CTk):
 
         # App name
         ctk.CTkLabel(
-            inner, text="NOCTURA",
+            inner, text="NOCTUA",
             font=ctk.CTkFont(family="Courier", size=30, weight="bold"),
             text_color=TEXT
         ).pack()

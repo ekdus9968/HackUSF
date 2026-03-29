@@ -1,5 +1,5 @@
 # =============================================================================
-# ui.py — Noctura unified application window
+# ui.py — Noctua unified application window
 # =============================================================================
 # One window, one mainloop, five pages.
 # Pages: Welcome → Auth → Emergency Contact → Calibration → Dashboard
@@ -50,7 +50,7 @@ class AppWindow(ctk.CTk):
 
     def __init__(self):
         super().__init__()
-        self.title("Noctura")
+        self.title("Noctua")
         self.configure(fg_color=BG)
         self.resizable(True, True)
         self.after(100, lambda: self.state("zoomed"))
@@ -87,7 +87,7 @@ class AppWindow(ctk.CTk):
                            corner_radius=0, border_width=1, border_color=BORDER)
         bar.pack(fill="x", side="top")
         bar.pack_propagate(False)
-        ctk.CTkLabel(bar, text="NOCTURA",
+        ctk.CTkLabel(bar, text="Noctua",
                      font=ctk.CTkFont(family="Courier", size=13, weight="bold"),
                      text_color=AMBER).pack(side="left", padx=16)
         if subtitle:
@@ -154,7 +154,7 @@ class AppWindow(ctk.CTk):
         ctk.CTkLabel(inner, text="◉",
                      font=ctk.CTkFont(family="Courier", size=72),
                      text_color=AMBER).pack(pady=(0, 4))
-        ctk.CTkLabel(inner, text="NOCTURA",
+        ctk.CTkLabel(inner, text="Noctua",
                      font=ctk.CTkFont(family="Courier", size=30, weight="bold"),
                      text_color=TEXT).pack()
         ctk.CTkLabel(inner, text="driver awareness system",
@@ -588,7 +588,7 @@ class AppWindow(ctk.CTk):
                                 fg_color=GREEN, text_color="#000", state="disabled")
         self._cal_title_lbl.configure(text="ALL DONE!", text_color=GREEN)
         self._cal_instr_lbl.configure(text="Your personal profile has been saved.")
-        self._cal_sub_lbl.configure(text="Starting Noctura...")
+        self._cal_sub_lbl.configure(text="Starting Noctua...")
         user = self._user
         if user and user["user_id"] != "guest":
             save_calibration(user["user_id"], self._ear_threshold, self._pitch_baseline)
@@ -618,7 +618,7 @@ class AppWindow(ctk.CTk):
         bar.pack(fill="x", side="top")
         bar.pack_propagate(False)
 
-        ctk.CTkLabel(bar, text="NOCTURA",
+        ctk.CTkLabel(bar, text="Noctua",
                      font=ctk.CTkFont(family="Courier", size=13, weight="bold"),
                      text_color=AMBER).pack(side="left", padx=16)
 

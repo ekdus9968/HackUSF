@@ -1,5 +1,5 @@
 # =============================================================================
-# emergency.py — Noctura emergency contact setup
+# emergency.py — Noctua emergency contact setup
 # Cockpit aesthetic, matches auth.py and calibration.py
 # =============================================================================
 
@@ -28,7 +28,7 @@ def get_emergency_contact():
     result = {"name": "", "email": ""}
 
     win = ctk.CTk()
-    win.title("Noctura")
+    win.title("Noctua")
     win.configure(fg_color=BG)
     win.resizable(True, True)
     win.after(100, lambda: win.state("zoomed"))
@@ -39,7 +39,7 @@ def get_emergency_contact():
     bar.pack(fill="x", side="top")
     bar.pack_propagate(False)
 
-    ctk.CTkLabel(bar, text="NOCTURA",
+    ctk.CTkLabel(bar, text="Noctua",
                  font=ctk.CTkFont(family="Courier", size=13, weight="bold"),
                  text_color=AMBER).pack(side="left", padx=16)
 

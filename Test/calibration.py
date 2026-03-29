@@ -1,5 +1,5 @@
 # =============================================================================
-# calibration.py — Noctura personal calibration
+# calibration.py — Noctua personal calibration
 # =============================================================================
 # Replaces cv2 imshow windows with a full Tkinter screen.
 # Live camera feed shown in canvas. 3 steps in sequence with progress bar.
@@ -62,7 +62,7 @@ class CalibrationWindow(ctk.CTk):
 
     def __init__(self, face_mesh, cap):
         super().__init__()
-        self.title("Noctura — Calibration")
+        self.title("Noctua — Calibration")
         self.configure(fg_color=BG)
         self.resizable(True, True)
         self.after(100, lambda: self.state("zoomed"))
@@ -96,7 +96,7 @@ class CalibrationWindow(ctk.CTk):
         bar.pack(fill="x", side="top")
         bar.pack_propagate(False)
 
-        ctk.CTkLabel(bar, text="NOCTURA",
+        ctk.CTkLabel(bar, text="Noctua",
                      font=ctk.CTkFont(family="Courier", size=13, weight="bold"),
                      text_color=AMBER).pack(side="left", padx=16)
 
@@ -381,7 +381,7 @@ class CalibrationWindow(ctk.CTk):
         self._title_lbl.configure(text="ALL DONE!", text_color=GREEN)
         self._instr_lbl.configure(
             text="Your personal profile has been saved.")
-        self._sub_lbl.configure(text="Starting Noctura...")
+        self._sub_lbl.configure(text="Starting Noctua...")
 
         # All dots green
         for dot, lbl in zip(self._step_dots, self._step_labels):

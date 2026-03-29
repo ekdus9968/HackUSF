@@ -50,7 +50,6 @@ class AppWindow(ctk.CTk):
         self.resizable(True, True)
         self.after(100, lambda: self.state("zoomed"))
         self.protocol("WM_DELETE_WINDOW", self._on_close)
-        self._cal_images = {}
 
         _init_db()
 
@@ -563,11 +562,6 @@ class AppWindow(ctk.CTk):
         self._cal_samples    = []
         self._cal_done       = False
         self._start_camera()
-        self._cal_images = {
-            "open": ctk.CTkImage(Image.open("icons8-eye-100.png"), size=(100, 100)),
-            "closed": ctk.CTkImage(Image.open("icons8-closed-eye-100.png"), size=(100, 100)),
-            "forward": ctk.CTkImage(Image.open("icons8-up-arrow-100.png"), size=(100, 100)),
-        }
 
         prog_frame = ctk.CTkFrame(self, fg_color=BG, height=52)
         prog_frame.pack(fill="x", padx=60, pady=(12, 0))
@@ -610,7 +604,8 @@ class AppWindow(ctk.CTk):
                                           font=ctk.CTkFont(family="Inter", size=10),
                                           text_color=TEXT2)
         self._cal_step_lbl.pack(pady=(0, 8))
-        self._cal_icon_lbl = ctk.CTkLabel(panel, text="", image=self._cal_images["open"])
+        self._cal_icon_lbl = ctk.CTkLabel(panel, text="👁",
+                                          font=ctk.CTkFont(size=56))
         self._cal_icon_lbl.pack(pady=(0, 10))
         self._cal_title_lbl = ctk.CTkLabel(panel, text="",
                                            font=ctk.CTkFont(family="Inter", size=20, weight="bold"),
@@ -643,10 +638,6 @@ class AppWindow(ctk.CTk):
 
     def _update_cal_step_ui(self):
         step = CAL_STEPS[self._cal_step]
-        self._overlay_title.configure(text=step["title"])
-        self._overlay_instr.configure(text=step["instruction"])
-        self._overlay_frame.place(relx=0.5, rely=0.5, anchor="center")
-        self._show_overlay(step["title"], step["instruction"])
         for i, (dot, lbl) in enumerate(zip(self._cal_dots, self._cal_labels)):
             if i < self._cal_step:
                 dot.configure(text_color=GREEN); lbl.configure(text_color=GREEN)
@@ -655,12 +646,7 @@ class AppWindow(ctk.CTk):
             else:
                 dot.configure(text_color=BORDER); lbl.configure(text_color=TEXT2)
         self._cal_step_lbl.configure(text=f"STEP {self._cal_step + 1} OF 3")
-        if self._cal_step == 0:
-            self._cal_icon_lbl.configure(image=self._cal_images["open"])
-        elif self._cal_step == 1:
-            self._cal_icon_lbl.configure(image=self._cal_images["closed"])
-        elif self._cal_step == 2:
-            self._cal_icon_lbl.configure(image=self._cal_images["forward"])
+        self._cal_icon_lbl.configure(text=step["icon"])
         self._cal_title_lbl.configure(text=step["title"], text_color=step["color"])
         self._cal_instr_lbl.configure(text=step["instruction"])
         self._cal_sub_lbl.configure(text=step["sub"])
@@ -673,7 +659,6 @@ class AppWindow(ctk.CTk):
 
     def _cal_on_btn(self):
         self._cal_collecting = True
-        self._fade_out_overlay()
         self._cal_btn.configure(text="COLLECTING...", state="disabled", fg_color=BORDER)
         self._cal_status_lbl.configure(text="Hold still...",
                                        text_color=CAL_STEPS[self._cal_step]["color"])
@@ -1653,17 +1638,3 @@ class AppWindow(ctk.CTk):
             self._welcome_cap.release()
         self._stop_camera()
         self.destroy()
-
-    def _fade_out_overlay(self, step=0):
-        fade_colors = ["#D8E4F8", "#AAB7CC", "#7E8BA0", "#566275", "#2E3848"]
-        if step < len(fade_colors):
-            self._overlay_title.configure(text_color=fade_colors[step])
-            self._overlay_instr.configure(text_color=fade_colors[step])
-            self.after(80, lambda: self._fade_out_overlay(step + 1))
-        else:
-            self._overlay_frame.place_forget()
-
-    def _show_overlay(self, title, instruction):
-        self._overlay_title.configure(text=title, text_color=TEXT)
-        self._overlay_instr.configure(text=instruction, text_color=TEXT)
-        self._overlay_frame.place(relx=0.5, rely=0.5, anchor="center")

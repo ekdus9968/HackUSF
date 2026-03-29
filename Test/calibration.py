@@ -141,6 +141,27 @@ class CalibrationWindow(ctk.CTk):
         self.canvas = ctk.CTkCanvas(cam_frame, bg="#000000",
                                     highlightthickness=0)
         self.canvas.pack(fill="both", expand=True, padx=2, pady=2)
+        self._overlay_frame = ctk.CTkFrame(cam_frame, fg_color="#000000", corner_radius=12)
+        
+        self._overlay_frame.place(relx=0.5, rely=0.5, anchor="center")
+
+        self._overlay_title = ctk.CTkLabel(
+            self._overlay_frame,
+            text="OPEN EYES",
+            font=ctk.CTkFont(family="MuseoModerno", size=24),
+            text_color=TEXT
+        )
+        self._overlay_title.pack(padx=30, pady=(20, 8))
+
+        self._overlay_instr = ctk.CTkLabel(
+            self._overlay_frame,
+            text="Look straight at the camera with your eyes fully open.",
+            font=ctk.CTkFont(family="Inter", size=14),
+            text_color=TEXT,
+            wraplength=420,
+            justify="center"
+        )
+        self._overlay_instr.pack(padx=30, pady=(0, 20))
 
         # Right — instructions panel
         right = ctk.CTkFrame(body, fg_color=CARD, corner_radius=12,

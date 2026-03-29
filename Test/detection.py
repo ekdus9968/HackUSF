@@ -15,19 +15,19 @@
 import cv2
 import mediapipe as mp
 import numpy as np
-from alert import speak
-from voice import start_voice_listener, consume_stop
 import time
 
 from calibration import calibrate
 from constants import *
 from sound import play_beep, play_warning
-from emergency import get_emergency_contact
 from sms import send_critical_alert
-from config import state   # shared state — bridge to ui.py
+from voice import start_voice_listener, consume_stop
+from alert import speak
+from chat import handle_chat
+from auth import save_calibration
+from config import state
 
 mp_face_mesh = mp.solutions.face_mesh
-mp_drawing   = mp.solutions.drawing_utils
 
 LEFT_EYE  = [362, 385, 387, 263, 373, 380]
 RIGHT_EYE = [33, 160, 158, 133, 153, 144]
@@ -40,24 +40,30 @@ def calculate_EAR(eye_landmarks):
 
 
 def run():
-    start_voice_listener()
-    # ── Emergency contact setup ───────────────────────────────────────────────
+    # ── Voice listener ────────────────────────────────────────────────────────
+    start_voice_listener(chat_handler=handle_chat)
+
+    # ── Emergency contact from state (set by main.py) ─────────────────────────
     contact_name  = state.get("contact_name", "")
     contact_email = state.get("contact_email", "")
-    if contact_name or contact_email:
-        print(f"Emergency contact saved: {contact_name}  {contact_email}")
 
     # ── Camera ────────────────────────────────────────────────────────────────
     cap = cv2.VideoCapture(0, cv2.CAP_AVFOUNDATION)
 
     # ── Alert state ───────────────────────────────────────────────────────────
-    eyes_closed_start = None
-    eye_alert_level   = 0
-    eye_prev_level    = 0
+    closed_start   = None
+    alert_level    = 0
+    prev_level     = 0
 
-    nod_start         = None
-    nod_alert_level   = 0
-    nod_prev_level    = 0
+    BEEP_INTERVAL  = 2.0
+    last_sound_t   = 0.0
+
+    # Waiting mode: eyes opened but STOP not yet said
+    waiting_stop   = False
+    waiting_level  = 0
+
+    # Prevent duplicate critical voice alert
+    spoke_critical = False
 
     with mp_face_mesh.FaceMesh(
         max_num_faces=1,
@@ -66,32 +72,20 @@ def run():
         min_tracking_confidence=0.5
     ) as face_mesh:
 
-        # ── Calibration (runs before main loop) ───────────────────────────────
+        # ── Load calibration from state (set during onboarding in main.py) ────
         EAR_THRESHOLD  = state.get("ear_threshold", 0.25)
         PITCH_BASELINE = state.get("pitch_baseline", 0.0)
         NOD_THRESHOLD  = PITCH_BASELINE + NOD_PITCH_OFFSET
 
         # ── Main detection loop ───────────────────────────────────────────────
         while cap.isOpened():
-
-            # Check if UI silenced the alarm
-            if state.get("alarm_silenced"):
-                eye_alert_level   = 0
-                nod_alert_level   = 0
-                eyes_closed_start = None
-                nod_start         = None
-                state["alarm_silenced"] = False   # reset flag
-
             ret, frame = cap.read()
-            if not ret:
-                break
-            # Check for voice stop command every frame
-            if consume_stop():
-                state["alarm_silenced"] = True
-                state["alert_stage"] = 0
+            if not ret or frame is None:
+                continue
 
-            h, w    = frame.shape[:2]
-            rgb     = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            now    = time.time()
+            h, w   = frame.shape[:2]
+            rgb    = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             results = face_mesh.process(rgb)
 
             if results.multi_face_landmarks:
@@ -101,87 +95,107 @@ def run():
                         lm = face_landmarks.landmark[idx]
                         return (lm.x * w, lm.y * h)
 
-                    # ── EAR ───────────────────────────────────────────────────
+                    # ── EAR + pitch ───────────────────────────────────────────
                     left_pts   = [get_point(i) for i in LEFT_EYE]
                     right_pts  = [get_point(i) for i in RIGHT_EYE]
                     avg_EAR    = (calculate_EAR(left_pts) + calculate_EAR(right_pts)) / 2.0
                     eye_closed = avg_EAR < EAR_THRESHOLD
 
-                    # ── Pitch ─────────────────────────────────────────────────
                     pitch     = calculate_pitch(face_landmarks, w, h)
                     head_down = pitch is not None and pitch > NOD_THRESHOLD
 
-                    # ── Write EAR to shared state (ui.py reads this) ──────────
+                    danger = eye_closed or head_down
+
+                    # ── Write EAR to shared state ─────────────────────────────
                     state["ear"] = round(avg_EAR, 3)
 
-                    # ── Closed eyes timer ──────────────────────────────────────
-                    if eye_closed:
-                        if eyes_closed_start is None:
-                            eyes_closed_start = time.time()
-                        closed_duration = time.time() - eyes_closed_start
-                        if closed_duration >= ALERT_3:
-                            eye_alert_level = 3
-                        elif closed_duration >= ALERT_2:
-                            eye_alert_level = 2
-                        elif closed_duration >= ALERT_1:
-                            eye_alert_level = 1
-                        else:
-                            eye_alert_level = 0
+                    # ── STOP: voice command or UI button ──────────────────────
+                    voice_stop = consume_stop()
+                    ui_stop    = state.get("alarm_silenced", False)
+
+                    if voice_stop or ui_stop:
+                        closed_start   = None
+                        alert_level    = 0
+                        prev_level     = 0
+                        waiting_stop   = False
+                        waiting_level  = 0
+                        last_sound_t   = 0.0
+                        spoke_critical = False
+                        state["alarm_silenced"] = False
+                        state["alert_stage"]    = 0
+
+                    # ── Waiting mode: eyes open but STOP not yet said ─────────
+                    if waiting_stop:
+                        if now - last_sound_t >= BEEP_INTERVAL:
+                            if waiting_level == 1:
+                                play_beep()
+                            else:
+                                play_warning()
+                            last_sound_t = now
+
+                        # Keep alert stage visible in UI during waiting mode
+                        state["alert_stage"] = waiting_level
+
                     else:
-                        eyes_closed_start = None
-                        eye_alert_level   = 0
-                        closed_duration   = 0
+                        # ── Alert timer logic ─────────────────────────────────
+                        if danger:
+                            if closed_start is None:
+                                closed_start   = now
+                                spoke_critical = False
+                            duration = now - closed_start
 
-                    # ── Head down timer ───────────────────────────────────────
-                    if head_down:
-                        if nod_start is None:
-                            nod_start = time.time()
-                        nod_duration = time.time() - nod_start
-                        if nod_duration >= NOD_ALERT_3:
-                            nod_alert_level = 3
-                        elif nod_duration >= NOD_ALERT_2:
-                            nod_alert_level = 2
-                        elif nod_duration >= NOD_ALERT_1:
-                            nod_alert_level = 1
+                            if   duration >= ALERT_3: alert_level = 3
+                            elif duration >= ALERT_2: alert_level = 2
+                            elif duration >= ALERT_1: alert_level = 1
+                            else:                     alert_level = 0
                         else:
-                            nod_alert_level = 0
-                    else:
-                        nod_start       = None
-                        nod_alert_level = 0
-                        nod_duration    = 0
+                            if alert_level in (1, 2):
+                                # Eyes opened before critical — enter waiting mode
+                                waiting_stop  = True
+                                waiting_level = alert_level
+                                closed_start  = None
+                                alert_level   = 0
+                                last_sound_t  = 0.0
+                            else:
+                                closed_start = None
+                                alert_level  = 0
 
-                    # ── Final alert level ─────────────────────────────────────
-                    alert_level = max(eye_alert_level, nod_alert_level)
+                        # ── Write alert stage to shared state ─────────────────
+                        state["alert_stage"] = alert_level
 
-                    # ── Write alert stage to shared state (ui.py reads this) ──
-                    state["alert_stage"] = alert_level
+                        # ── Sound / voice / email on level change ─────────────
+                        if alert_level != prev_level:
+                            if alert_level == 1:
+                                play_beep()
+                                last_sound_t = now
+                            elif alert_level == 2:
+                                play_warning()
+                                speak("Warning. Drowsiness detected. Please stay alert.")
+                                last_sound_t = now
+                            elif alert_level == 3:
+                                print("CRITICAL")
+                                send_critical_alert(contact_name, contact_email)
+                            elif alert_level == 0:
+                                last_sound_t   = 0.0
+                                spoke_critical = False
+                            prev_level = alert_level
 
-                    # ── Sound triggers ────────────────────────────────────────
-                if eye_alert_level != eye_prev_level:
-                    if eye_alert_level == 1:
-                        play_beep()
-                    elif eye_alert_level == 2:
-                        play_warning()
-                    elif eye_alert_level == 3:
-                        print("CRITICAL (eyes)")
-                        speak("Critical alert. You have been driving with your eyes closed. Please pull over.")
-                        send_critical_alert(contact_name, contact_email)
-                    eye_prev_level = eye_alert_level
+                        # ── Critical voice alert (once only) ─────────────────
+                        if alert_level == 3 and not spoke_critical:
+                            label = "eyes closed" if eye_closed else "head down"
+                            speak(f"Warning! You have been driving with your {label}. Please pull over immediately.")
+                            spoke_critical = True
 
-                if nod_alert_level != nod_prev_level:
-                    if nod_alert_level == 1:
-                        play_beep()
-                    elif nod_alert_level == 2:
-                        play_warning()
-                        speak("Warning. Head nodding detected. Please stay alert.")
-                    elif nod_alert_level == 3:
-                        print("CRITICAL (head nod)")
-                        speak("Critical alert. Head nodding detected. You may be falling asleep. Please pull over.")
-                        send_critical_alert(contact_name, contact_email)
-                    nod_prev_level = nod_alert_level
+                        # ── Repeat sound while alert persists ─────────────────
+                        if alert_level == 1 and now - last_sound_t >= BEEP_INTERVAL:
+                            play_beep()
+                            last_sound_t = now
+                        elif alert_level == 2 and now - last_sound_t >= BEEP_INTERVAL:
+                            play_warning()
+                            last_sound_t = now
 
                     # ── Draw landmarks on frame ───────────────────────────────
-                    color = alert_colors[alert_level]
+                    color = alert_colors[max(alert_level, waiting_level if waiting_stop else 0)]
                     for pt in left_pts + right_pts:
                         cv2.circle(frame, (int(pt[0]), int(pt[1])), 2, color, -1)
 

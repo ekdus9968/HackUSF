@@ -263,7 +263,7 @@ class AuthWindow(ctk.CTk):
             if user:
                 self.result = user
                 print(f"[Auth] Signed in: {user['user_id']}", file=sys.stderr)
-                self.destroy()
+                self.quit()
             else:
                 err_lbl.configure(text="Incorrect user ID or password.")
                 pw_e.delete(0, "end")
@@ -286,7 +286,7 @@ class AuthWindow(ctk.CTk):
             inner, text="← back",
             command=self._show_welcome,
             font=ctk.CTkFont(family="Courier", size=10),
-            fg_color="transparent", hover_color="transparent",
+            fg_color="transparent", hover_color=PANEL,
             text_color=TEXT2
         ).pack(pady=(16, 0))
 
@@ -356,7 +356,7 @@ class AuthWindow(ctk.CTk):
             user["needs_calibration"] = True
             self.result = user
             print(f"[Auth] Account created: {user['user_id']}", file=sys.stderr)
-            self.destroy()
+            self.quit()
 
         _make_btn(inner, "CREATE ACCOUNT & CALIBRATE", do_create).pack(pady=(0, 8))
 
@@ -364,7 +364,7 @@ class AuthWindow(ctk.CTk):
             inner, text="← back to sign in",
             command=self._show_signin,
             font=ctk.CTkFont(family="Courier", size=10),
-            fg_color="transparent", hover_color="transparent",
+            fg_color="transparent", hover_color=PANEL,
             text_color=TEXT2
         ).pack()
 
@@ -383,7 +383,7 @@ class AuthWindow(ctk.CTk):
             "pitch_baseline":  None,
         }
         print("[Auth] Continuing as guest.", file=sys.stderr)
-        self.destroy()
+        self.after(10, self.quit)
 
 
 # =============================================================================

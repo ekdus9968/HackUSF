@@ -44,8 +44,7 @@ class AlertEyeApp(ctk.CTk):
         self.configure(fg_color=BG)    # set background to cockpit dark color
 
         # Initialize camera
-
-        cap = cv2.VideoCapture(0)
+        cap = cv2.VideoCapture(0, cv2.CAP_AVFOUNDATION)
  
         # Build UI then start the update loop
         self._build_ui()

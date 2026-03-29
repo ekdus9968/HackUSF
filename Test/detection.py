@@ -15,6 +15,7 @@
 import cv2
 import mediapipe as mp
 import numpy as np
+from alert import speak
 import time
 
 from calibration import calibrate
@@ -45,7 +46,7 @@ def run():
         print(f"Emergency contact saved: {contact_name}  {contact_email}")
 
     # ── Camera ────────────────────────────────────────────────────────────────
-    cap = cv2.VideoCapture(0)  
+    cap = cv2.VideoCapture(0, cv2.CAP_AVFOUNDATION)
 
     # ── Alert state ───────────────────────────────────────────────────────────
     eyes_closed_start = None
@@ -150,25 +151,28 @@ def run():
                     state["alert_stage"] = alert_level
 
                     # ── Sound triggers ────────────────────────────────────────
-                    if eye_alert_level != eye_prev_level:
-                        if eye_alert_level == 1:
-                            play_beep()
-                        elif eye_alert_level == 2:
-                            play_warning()
-                        elif eye_alert_level == 3:
-                            print("CRITICAL (eyes)")
-                            send_critical_alert(contact_name, contact_email)
-                        eye_prev_level = eye_alert_level
+                if eye_alert_level != eye_prev_level:
+                    if eye_alert_level == 1:
+                        play_beep()
+                    elif eye_alert_level == 2:
+                        play_warning()
+                    elif eye_alert_level == 3:
+                        print("CRITICAL (eyes)")
+                        speak("Critical alert. You have been driving with your eyes closed. Please pull over.")
+                        send_critical_alert(contact_name, contact_email)
+                    eye_prev_level = eye_alert_level
 
-                    if nod_alert_level != nod_prev_level:
-                        if nod_alert_level == 1:
-                            play_beep()
-                        elif nod_alert_level == 2:
-                            play_warning()
-                        elif nod_alert_level == 3:
-                            print("CRITICAL (head nod)")
-                            send_critical_alert(contact_name, contact_email)
-                        nod_prev_level = nod_alert_level
+                if nod_alert_level != nod_prev_level:
+                    if nod_alert_level == 1:
+                        play_beep()
+                    elif nod_alert_level == 2:
+                        play_warning()
+                        speak("Warning. Head nodding detected. Please stay alert.")
+                    elif nod_alert_level == 3:
+                        print("CRITICAL (head nod)")
+                        speak("Critical alert. Head nodding detected. You may be falling asleep. Please pull over.")
+                        send_critical_alert(contact_name, contact_email)
+                    nod_prev_level = nod_alert_level
 
                     # ── Draw landmarks on frame ───────────────────────────────
                     color = alert_colors[alert_level]

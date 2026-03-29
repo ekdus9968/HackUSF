@@ -14,7 +14,7 @@ if __name__ == "__main__":
     state["contact_email"] = contact_email
 
     # Step 2 — calibration (cv2 window, runs before UI starts)
-    cap = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture(0, cv2.CAP_AVFOUNDATION)
     with mp.solutions.face_mesh.FaceMesh(
         max_num_faces=1,
         refine_landmarks=True,

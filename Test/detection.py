@@ -289,10 +289,13 @@ with mp_face_mesh.FaceMesh(
             terminate_drive = True
             continue
 
-    # Save session and show report on quit
+    # Save session and show reports
     session_id = session_recorder.save()
     if session_id > 0 and user["user_id"] != "guest":
-        show_session_report(session_id, f"{user['first_name']} {user['last_name']}")
+        name = f"{user['first_name']} {user['last_name']}"
+        show_session_report(session_id, name)
+        from report import show_history_report
+        show_history_report(user["user_id"], name)
 
 cap.release()
 cv2.destroyAllWindows()

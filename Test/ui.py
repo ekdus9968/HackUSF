@@ -34,6 +34,7 @@ TEXT    = "#D8E4F8"
 TEXT2   = "#5A7090"
 TEXT3   = "#384860"
 CARD    = "#0F1428"
+CARD_HOVER = "#121B38"
 
 CAL_STEPS = [
     {"title": "OPEN EYES",     "instruction": "Look straight at the camera with your eyes fully open.", "sub": "Hold still — we're measuring your natural eye openness.", "color": GREEN, "samples": 60},
@@ -81,21 +82,21 @@ class AppWindow(ctk.CTk):
     # =========================================================================
 
     def _title_bar(self, subtitle="", step=""):
-        bar = ctk.CTkFrame(self, fg_color=PANEL, height=40,
-                           corner_radius=0, border_width=1, border_color=BORDER)
+        bar = ctk.CTkFrame(self, fg_color=PANEL, height=48,
+                           corner_radius=0, border_width=2, border_color=BORDER2)
         bar.pack(fill="x", side="top")
         bar.pack_propagate(False)
         ctk.CTkLabel(bar, text="NOCTUA",
-                     font=ctk.CTkFont(family="Inter", size=13, weight="bold"),
-                     text_color=AMBER).pack(side="left", padx=16)
+                     font=ctk.CTkFont(family="Inter", size=14, weight="bold"),
+                     text_color=AMBER).pack(side="left", padx=20, pady=0)
         if subtitle:
             ctk.CTkLabel(bar, text=subtitle,
-                         font=ctk.CTkFont(family="Inter", size=11),
-                         text_color=TEXT2).pack(side="left", padx=8)
+                         font=ctk.CTkFont(family="Inter", size=11, weight="bold"),
+                         text_color=TEXT2).pack(side="left", padx=12)
         if step:
             ctk.CTkLabel(bar, text=step,
-                         font=ctk.CTkFont(family="Inter", size=10),
-                         text_color=TEXT2).pack(side="right", padx=16)
+                         font=ctk.CTkFont(family="Inter", size=10, weight="bold"),
+                         text_color=TEXT3).pack(side="right", padx=20)
         return bar
 
     def _clear(self):
@@ -105,8 +106,8 @@ class AppWindow(ctk.CTk):
     def _card(self, width=500, height=480):
         outer = ctk.CTkFrame(self, fg_color=BG)
         outer.pack(fill="both", expand=True)
-        card = ctk.CTkFrame(outer, fg_color=CARD, corner_radius=16,
-                            border_width=1, border_color=BORDER,
+        card = ctk.CTkFrame(outer, fg_color=CARD, corner_radius=20,
+                            border_width=2, border_color=BORDER2,
                             width=width, height=height)
         card.place(relx=0.5, rely=0.5, anchor="center")
         card.pack_propagate(False)
@@ -117,19 +118,19 @@ class AppWindow(ctk.CTk):
     def _entry(self, parent, placeholder, show="", width=380):
         return ctk.CTkEntry(parent, placeholder_text=placeholder,
                             font=ctk.CTkFont(family="Inter", size=13),
-                            fg_color=PANEL, border_color=BORDER, border_width=1,
+                            fg_color=PANEL, border_color=BORDER2, border_width=2,
                             text_color=TEXT, placeholder_text_color=TEXT2,
-                            width=width, height=42, corner_radius=6, show=show)
+                            width=width, height=42, corner_radius=8, show=show)
 
     def _btn(self, parent, text, cmd, fg=AMBER, tc="#000", outline=False, width=380, pady=6):
         b = ctk.CTkButton(parent, text=text, command=cmd,
                           font=ctk.CTkFont(family="Inter", size=12, weight="bold"),
                           fg_color="transparent" if outline else fg,
-                          hover_color=PANEL if outline else AMBER2,
+                          hover_color=BORDER if outline else AMBER2,
                           text_color=TEXT2 if outline else tc,
                           border_width=1 if outline else 0,
-                          border_color=BORDER if outline else fg,
-                          width=width, height=42, corner_radius=6)
+                          border_color=BORDER2 if outline else fg,
+                          width=width, height=42, corner_radius=8)
         b.pack(pady=pady)
         return b
 
@@ -215,17 +216,17 @@ class AppWindow(ctk.CTk):
         outer = ctk.CTkFrame(self, fg_color=BG)
         outer.pack(fill="both", expand=True)
 
-        card = ctk.CTkFrame(outer, fg_color=CARD, corner_radius=16,
-                            border_width=1, border_color=BORDER,
+        card = ctk.CTkFrame(outer, fg_color=CARD, corner_radius=20,
+                            border_width=2, border_color=BORDER2,
                             width=500, height=420)
         card.place(relx=0.5, rely=0.5, anchor="center")
         card.pack_propagate(False)
 
         # Back button top left of card
         ctk.CTkButton(card, text="← back", command=self._show_welcome,
-                    font=ctk.CTkFont(family="Inter", size=10),
-                    fg_color="transparent", hover_color=PANEL,
-                    text_color=TEXT2, width=60, height=24).place(x=12, y=12)
+                    font=ctk.CTkFont(family="Inter", size=10, weight="bold"),
+                    fg_color="transparent", hover_color=CARD_HOVER,
+                    text_color=TEXT2, border_width=0, width=60, height=32).place(x=12, y=12)
 
         inner = ctk.CTkFrame(card, fg_color="transparent")
         inner.place(relx=0.5, rely=0.53, anchor="center")
@@ -254,7 +255,7 @@ class AppWindow(ctk.CTk):
                 pw_e.delete(0, "end")
 
         self._btn(inner, "SIGN IN", do_signin)
-        ctk.CTkFrame(inner, fg_color=BORDER, height=1, width=380,
+        ctk.CTkFrame(inner, fg_color=BORDER2, height=2,
                     corner_radius=0).pack(pady=10)
 
         row = ctk.CTkFrame(inner, fg_color="transparent")
@@ -283,12 +284,12 @@ class AppWindow(ctk.CTk):
 
         outer = ctk.CTkFrame(self, fg_color=BG)
         outer.pack(fill="both", expand=True)
-        card = ctk.CTkFrame(outer, fg_color=CARD, corner_radius=16,
-                            border_width=1, border_color=BORDER, width=560, height=640)
+        card = ctk.CTkFrame(outer, fg_color=CARD, corner_radius=20,
+                            border_width=2, border_color=BORDER2, width=560, height=640)
         card.place(relx=0.5, rely=0.5, anchor="center")
         card.pack_propagate(False)
         inner = ctk.CTkFrame(card, fg_color="transparent")
-        inner.pack(padx=48, pady=24, fill="both", expand=True)
+        inner.pack(padx=48, pady=32, fill="both", expand=True)
 
         ctk.CTkLabel(inner, text="CREATE ACCOUNT",
                      font=ctk.CTkFont(family="MuseoModerno", size=20, weight="bold"),
@@ -374,8 +375,8 @@ class AppWindow(ctk.CTk):
         outer = ctk.CTkFrame(self, fg_color=BG)
         outer.pack(fill="both", expand=True)
 
-        card = ctk.CTkScrollableFrame(outer, fg_color=CARD, corner_radius=16,
-                                      border_width=1, border_color=BORDER,
+        card = ctk.CTkScrollableFrame(outer, fg_color=CARD, corner_radius=20,
+                                      border_width=2, border_color=BORDER2,
                                       width=600, height=580,
                                       scrollbar_button_color=BORDER,
                                       scrollbar_button_hover_color=BORDER2)
@@ -406,31 +407,38 @@ class AppWindow(ctk.CTk):
                 btn_row = ctk.CTkFrame(card, fg_color="transparent")
                 btn_row.pack(fill="x", padx=24, pady=(0, 4))
                 btn_refs = []
+                is_single = q.get("single", False)
 
-                def make_cmd(v, sel_list, refs):
+                def make_cmd(v, sel_list, refs, single=False):
                     def cmd():
-                        if v in sel_list:
-                            sel_list.remove(v)
-                        else:
+                        if single:
+                            sel_list.clear()
                             sel_list.append(v)
+                        else:
+                            if v in sel_list:
+                                sel_list.remove(v)
+                            else:
+                                sel_list.append(v)
                         for b, bv in refs:
                             b.configure(
                                 fg_color=AMBER if bv in sel_list else "transparent",
-                                text_color="#000" if bv in sel_list else TEXT2
+                                text_color="#000" if bv in sel_list else TEXT2,
+                                border_color=AMBER if bv in sel_list else BORDER,
+                                border_width=2
                             )
                     return cmd
 
                 for label, value in zip(q["options"], q["values"]):
                     btn = ctk.CTkButton(btn_row, text=label,
-                                        font=ctk.CTkFont(family="Inter", size=10),
-                                        fg_color="transparent", hover_color=BORDER2,
-                                        text_color=TEXT2, border_width=1, border_color=BORDER,
-                                        height=34, corner_radius=6)
-                    btn.pack(side="left", padx=(0, 6), pady=2)
+                                        font=ctk.CTkFont(family="Inter", size=10, weight="bold"),
+                                        fg_color="transparent", hover_color=CARD_HOVER,
+                                        text_color=TEXT2, border_width=2, border_color=BORDER,
+                                        height=36, corner_radius=8)
+                    btn.pack(side="left", padx=(0, 8), pady=2)
                     btn_refs.append((btn, value))
 
                 for btn, value in btn_refs:
-                    btn.configure(command=make_cmd(value, selected, btn_refs))
+                    btn.configure(command=make_cmd(value, selected, btn_refs, is_single))
 
             elif q["type"] == "text":
                 entry = self._entry(card, q.get("placeholder", ""), width=552)
@@ -612,14 +620,14 @@ class AppWindow(ctk.CTk):
         body = ctk.CTkFrame(self, fg_color=BG)
         body.pack(fill="both", expand=True, padx=60, pady=12)
 
-        cam_frame = ctk.CTkFrame(body, fg_color=CARD, corner_radius=12,
-                                 border_width=1, border_color=BORDER)
+        cam_frame = ctk.CTkFrame(body, fg_color=CARD, corner_radius=16,
+                                 border_width=2, border_color=BORDER2)
         cam_frame.pack(side="left", fill="both", expand=True, padx=(0, 16))
         self._cal_canvas = ctk.CTkCanvas(cam_frame, bg="#000", highlightthickness=0)
         self._cal_canvas.pack(fill="both", expand=True, padx=2, pady=2)
 
-        right = ctk.CTkFrame(body, fg_color=CARD, corner_radius=12,
-                             border_width=1, border_color=BORDER, width=320)
+        right = ctk.CTkFrame(body, fg_color=CARD, corner_radius=16,
+                             border_width=2, border_color=BORDER2, width=320)
         right.pack(side="right", fill="y")
         right.pack_propagate(False)
 
@@ -814,16 +822,16 @@ class AppWindow(ctk.CTk):
         if not self._cam_active:
             self._start_camera()
 
-        bar = ctk.CTkFrame(self, fg_color=PANEL, height=52,
-                           corner_radius=0, border_width=1, border_color=BORDER)
+        bar = ctk.CTkFrame(self, fg_color=PANEL, height=56,
+                           corner_radius=0, border_width=2, border_color=BORDER2)
         bar.pack(fill="x", side="top")
         bar.pack_propagate(False)
 
         ctk.CTkLabel(bar, text="NOCTUA",
-                     font=ctk.CTkFont(family="Inter", size=13, weight="bold"),
-                     text_color=AMBER).pack(side="left", padx=16)
+                     font=ctk.CTkFont(family="Inter", size=14, weight="bold"),
+                     text_color=AMBER).pack(side="left", padx=20)
         ctk.CTkLabel(bar, text="DRIVER MONITORING SYSTEM · ACTIVE SESSION",
-                     font=ctk.CTkFont(size=11), text_color=TEXT2).pack(side="left", padx=8)
+                     font=ctk.CTkFont(family="Inter", size=11, weight="bold"), text_color=TEXT2).pack(side="left", padx=12)
 
         # Profile badge — circle in title bar
         user     = self._user or {}
@@ -855,9 +863,9 @@ class AppWindow(ctk.CTk):
         ctk.CTkButton(bar, text="END SESSION",
                       command=self._end_session,
                       font=ctk.CTkFont(family="Inter", size=11, weight="bold"),
-                      fg_color="transparent", hover_color=PANEL,
-                      text_color=TEXT2, border_width=1, border_color=BORDER,
-                      width=110, height=30, corner_radius=4).pack(side="right", padx=4)
+                      fg_color="transparent", hover_color=CARD_HOVER,
+                      text_color=TEXT2, border_width=2, border_color=BORDER,
+                      width=120, height=32, corner_radius=8).pack(side="right", padx=8)
 
         self._status_label = ctk.CTkLabel(bar, text="● MONITORING",
                                           font=ctk.CTkFont(family="Inter", size=11),
@@ -873,13 +881,13 @@ class AppWindow(ctk.CTk):
         body.pack(fill="both", expand=True)
 
         left = ctk.CTkFrame(body, fg_color=PANEL, width=240, corner_radius=0,
-                            border_width=1, border_color=BORDER)
+                            border_width=2, border_color=BORDER2)
         left.pack(side="left", fill="y")
         left.pack_propagate(False)
         self._build_left_panel(left)
 
         right = ctk.CTkFrame(body, fg_color=PANEL, width=260, corner_radius=0,
-                             border_width=1, border_color=BORDER)
+                             border_width=2, border_color=BORDER2)
         right.pack(side="right", fill="y")
         right.pack_propagate(False)
         self._build_right_panel(right)
@@ -918,8 +926,8 @@ class AppWindow(ctk.CTk):
         self._ear_canvas.pack(pady=4)
         self._draw_ear_ring(0.31)
 
-        ctk.CTkFrame(parent, fg_color=BORDER, height=1,
-                     corner_radius=0).pack(fill="x", padx=16, pady=6)
+        ctk.CTkFrame(parent, fg_color=BORDER2, height=2,
+                     corner_radius=0).pack(fill="x", padx=16, pady=8)
 
         ctk.CTkLabel(parent, text="ALERT STAGE",
                      font=ctk.CTkFont(family="Inter", size=9),
@@ -938,12 +946,12 @@ class AppWindow(ctk.CTk):
             ("Stage 2", "5s — loud alarm",  "#FF8C00"),
             ("SMS",     "8s — email alert", RED),
         ]:
-            row = ctk.CTkFrame(parent, fg_color=CARD, corner_radius=4)
-            row.pack(fill="x", padx=12, pady=1)
-            ctk.CTkFrame(row, fg_color=color, width=3, corner_radius=0).pack(side="left", fill="y")
+            row = ctk.CTkFrame(parent, fg_color=CARD, corner_radius=6)
+            row.pack(fill="x", padx=12, pady=2)
+            ctk.CTkFrame(row, fg_color=color, width=4, corner_radius=0).pack(side="left", fill="y")
             ctk.CTkLabel(row, text=stage,
                          font=ctk.CTkFont(family="Inter", size=10, weight="bold"),
-                         text_color=color, width=56, anchor="w").pack(side="left", padx=6, pady=6)
+                         text_color=color, width=56, anchor="w").pack(side="left", padx=8, pady=7)
             ctk.CTkLabel(row, text=desc,
                          font=ctk.CTkFont(family="Inter", size=9),
                          text_color=TEXT2).pack(side="left")
@@ -951,9 +959,9 @@ class AppWindow(ctk.CTk):
         ctk.CTkButton(
             parent, text="STOP ALARM",
             command=self._stop_alarm,
-            font=ctk.CTkFont(family="Inter", size=12, weight="bold"),
-            fg_color=RED, hover_color="#CC2222",
-            text_color="#FFFFFF", corner_radius=0, height=48
+            font=ctk.CTkFont(family="Inter", size=13, weight="bold"),
+            fg_color=RED, hover_color="#EE2222",
+            text_color="#FFFFFF", corner_radius=0, height=52
         ).pack(fill="x", side="bottom")
 
         ctk.CTkFrame(parent, fg_color=BORDER, height=1,
@@ -1048,8 +1056,8 @@ class AppWindow(ctk.CTk):
 
         ctk.CTkFrame(parent, fg_color="transparent").pack(fill="y", expand=True)
 
-        gem_card = ctk.CTkFrame(parent, fg_color="#0A1A0F", corner_radius=8,
-                                border_width=1, border_color="#1A3020")
+        gem_card = ctk.CTkFrame(parent, fg_color="#0A1A0F", corner_radius=12,
+                                border_width=2, border_color="#2A5030")
         gem_card.pack(fill="x", padx=14, pady=(0, 14))
 
         header = ctk.CTkFrame(gem_card, fg_color="transparent")
@@ -1104,8 +1112,8 @@ class AppWindow(ctk.CTk):
 
         # Weather overlay card
         self._weather_card = ctk.CTkFrame(parent, fg_color="#0A2A4A",
-                                        corner_radius=10, border_width=1,
-                                        border_color="#1A4A7A")
+                                        corner_radius=14, border_width=2,
+                                        border_color="#2A6AAA")
         self._weather_card.place(relx=0.97, rely=0.04, anchor="ne")
         self._weather_card.place_forget()
 
@@ -1127,9 +1135,9 @@ class AppWindow(ctk.CTk):
         self.stop_btn = ctk.CTkButton(
             parent, text="STOP ALARM",
             command=self._stop_alarm,
-            font=ctk.CTkFont(family="Inter", size=14, weight="bold"),
-            fg_color=RED, hover_color="#CC2222",
-            text_color="#FFFFFF", width=200, height=52, corner_radius=8
+            font=ctk.CTkFont(family="Inter", size=16, weight="bold"),
+            fg_color=RED, hover_color="#EE2222",
+            text_color="#FFFFFF", width=240, height=60, corner_radius=12
         )
         self.stop_btn.place_forget()
     def _load_and_show_weather(self):
@@ -1307,8 +1315,8 @@ class AppWindow(ctk.CTk):
         outer = ctk.CTkFrame(self, fg_color=BG)
         outer.pack(fill="both", expand=True)
 
-        tab_bar = ctk.CTkFrame(outer, fg_color=PANEL, height=40,
-                               corner_radius=0, border_width=1, border_color=BORDER)
+        tab_bar = ctk.CTkFrame(outer, fg_color=PANEL, height=48,
+                               corner_radius=0, border_width=2, border_color=BORDER2)
         tab_bar.pack(fill="x")
         tab_bar.pack_propagate(False)
 
@@ -1322,23 +1330,23 @@ class AppWindow(ctk.CTk):
         )
         self._report_loading.place(relx=0.5, rely=0.5, anchor="center")
 
-        bottom = ctk.CTkFrame(outer, fg_color=PANEL, height=52,
-                              corner_radius=0, border_width=1, border_color=BORDER)
+        bottom = ctk.CTkFrame(outer, fg_color=PANEL, height=56,
+                              corner_radius=0, border_width=2, border_color=BORDER2)
         bottom.pack(fill="x", side="bottom")
         bottom.pack_propagate(False)
 
         ctk.CTkButton(bottom, text="CLOSE APP",
                       command=self._on_close,
                       font=ctk.CTkFont(family="Inter", size=12, weight="bold"),
-                      fg_color=BORDER, hover_color=BORDER2,
-                      text_color=TEXT, corner_radius=6,
-                      width=160, height=34).pack(side="right", padx=16, pady=9)
+                      fg_color=BORDER, hover_color=CARD_HOVER,
+                      text_color=TEXT, corner_radius=8,
+                      width=160, height=38).pack(side="right", padx=16, pady=9)
         ctk.CTkButton(bottom, text="NEW SESSION",
               command=self._restart_session,
               font=ctk.CTkFont(family="Inter", size=12, weight="bold"),
               fg_color=AMBER, hover_color=AMBER2,
-              text_color="#000", corner_radius=6,
-              width=160, height=34).pack(side="left", padx=16, pady=9)
+              text_color="#000", corner_radius=8,
+              width=160, height=38).pack(side="left", padx=16, pady=9)
 
         def show_session_tab():
             session_btn.configure(fg_color=AMBER, text_color="#000")
@@ -1358,15 +1366,15 @@ class AppWindow(ctk.CTk):
                                     command=show_session_tab,
                                     font=ctk.CTkFont(family="Inter", size=11, weight="bold"),
                                     fg_color=AMBER, hover_color=AMBER2,
-                                    text_color="#000", width=140, height=28, corner_radius=4)
+                                    text_color="#000", width=140, height=32, corner_radius=8)
         session_btn.pack(side="left", padx=8, pady=6)
 
         history_btn = ctk.CTkButton(tab_bar, text="DRIVE HISTORY",
                                     command=show_history_tab,
                                     font=ctk.CTkFont(family="Inter", size=11, weight="bold"),
-                                    fg_color="transparent", hover_color=PANEL,
-                                    text_color=TEXT2, border_width=1, border_color=BORDER,
-                                    width=140, height=28, corner_radius=4)
+                                    fg_color="transparent", hover_color=CARD_HOVER,
+                                    text_color=TEXT2, border_width=2, border_color=BORDER,
+                                    width=140, height=32, corner_radius=8)
         history_btn.pack(side="left", padx=4, pady=6)
 
         ctk.CTkLabel(tab_bar, text="Session saved ✓",
@@ -1470,8 +1478,8 @@ class AppWindow(ctk.CTk):
         overlay = ctk.CTkFrame(self, fg_color="#000000", corner_radius=0)
         overlay.place(x=0, y=0, relwidth=1, relheight=1)
 
-        card = ctk.CTkFrame(overlay, fg_color=CARD, corner_radius=16,
-                            border_width=1, border_color=BORDER, width=480, height=680)
+        card = ctk.CTkFrame(overlay, fg_color=CARD, corner_radius=20,
+                            border_width=2, border_color=BORDER2, width=480, height=680)
         card.place(relx=0.5, rely=0.5, anchor="center")
         card.pack_propagate(False)
 
@@ -1494,6 +1502,9 @@ class AppWindow(ctk.CTk):
         if os.path.exists(pic_path):
             try:
                 img     = Image.open(pic_path).resize((84, 84)).convert("RGBA")
+                mask = Image.new("L", (84, 84), 0)
+                ImageDraw.Draw(mask).ellipse((0, 0, 84, 84), fill=255)
+                img.putalpha(mask)
                 pic_img = ctk.CTkImage(img, size=(84, 84))
                 ctk.CTkLabel(avatar_frame, image=pic_img, text="").place(
                     relx=0.5, rely=0.5, anchor="center")
@@ -1538,25 +1549,25 @@ class AppWindow(ctk.CTk):
         name_row.pack(fill="x", pady=(0, 8))
         first_e = ctk.CTkEntry(name_row, placeholder_text="First name",
                                font=ctk.CTkFont(family="Inter", size=12),
-                               fg_color=PANEL, border_color=BORDER, border_width=1,
+                               fg_color=PANEL, border_color=BORDER2, border_width=2,
                                text_color=TEXT, placeholder_text_color=TEXT2,
-                               width=196, height=38, corner_radius=6)
+                               width=196, height=40, corner_radius=8)
         first_e.insert(0, user.get("first_name", ""))
         first_e.pack(side="left", padx=(0, 8))
 
         last_e = ctk.CTkEntry(name_row, placeholder_text="Last name",
                               font=ctk.CTkFont(family="Inter", size=12),
-                              fg_color=PANEL, border_color=BORDER, border_width=1,
+                              fg_color=PANEL, border_color=BORDER2, border_width=2,
                               text_color=TEXT, placeholder_text_color=TEXT2,
-                              width=196, height=38, corner_radius=6)
+                              width=196, height=40, corner_radius=8)
         last_e.insert(0, user.get("last_name", ""))
         last_e.pack(side="left")
 
         uid_e = ctk.CTkEntry(inner, placeholder_text="User ID",
                              font=ctk.CTkFont(family="Inter", size=12),
-                             fg_color=PANEL, border_color=BORDER, border_width=1,
+                             fg_color=PANEL, border_color=BORDER2, border_width=2,
                              text_color=TEXT, placeholder_text_color=TEXT2,
-                             width=400, height=38, corner_radius=6)
+                             width=400, height=40, corner_radius=8)
         uid_e.insert(0, user_id)
         uid_e.pack(pady=(0, 4))
         if user_id == "guest":
@@ -1572,17 +1583,17 @@ class AppWindow(ctk.CTk):
 
         ec_name_e = ctk.CTkEntry(inner, placeholder_text="Contact name",
                                  font=ctk.CTkFont(family="Inter", size=12),
-                                 fg_color=PANEL, border_color=BORDER, border_width=1,
+                                 fg_color=PANEL, border_color=BORDER2, border_width=2,
                                  text_color=TEXT, placeholder_text_color=TEXT2,
-                                 width=400, height=38, corner_radius=6)
+                                 width=400, height=40, corner_radius=8)
         ec_name_e.insert(0, user.get("emergency_email", "").split("|")[0] if "|" in user.get("emergency_email", "") else state.get("contact_name", ""))
         ec_name_e.pack(pady=(0, 8))
 
         ec_email_e = ctk.CTkEntry(inner, placeholder_text="Contact email",
                                   font=ctk.CTkFont(family="Inter", size=12),
-                                  fg_color=PANEL, border_color=BORDER, border_width=1,
+                                  fg_color=PANEL, border_color=BORDER2, border_width=2,
                                   text_color=TEXT, placeholder_text_color=TEXT2,
-                                  width=400, height=38, corner_radius=6)
+                                  width=400, height=40, corner_radius=8)
         ec_email_e.insert(0, user.get("emergency_email", ""))
         ec_email_e.pack(pady=(0, 4))
 
@@ -1604,47 +1615,57 @@ class AppWindow(ctk.CTk):
                          text_color=TEXT, anchor="w").pack(fill="x", pady=(6, 2))
 
             if q["type"] == "choice":
+                is_single = q.get("single", False)
                 current_vals = profile.get(q["key"], "").split(",") if profile.get(q["key"]) else []
+                # For single-select fields, only keep the first value
+                if is_single and len(current_vals) > 1:
+                    current_vals = current_vals[:1]
                 selected     = list(current_vals)
                 answers[q["key"]] = selected
                 btn_row = ctk.CTkFrame(inner, fg_color="transparent")
                 btn_row.pack(fill="x", pady=(0, 4))
                 btn_refs = []
 
-                def make_cmd(v, sel_list, refs):
+                def make_cmd(v, sel_list, refs, single=False):
                     def cmd():
-                        if v in sel_list:
-                            sel_list.remove(v)
-                        else:
+                        if single:
+                            sel_list.clear()
                             sel_list.append(v)
+                        else:
+                            if v in sel_list:
+                                sel_list.remove(v)
+                            else:
+                                sel_list.append(v)
                         for b, bv in refs:
                             b.configure(
                                 fg_color=AMBER if bv in sel_list else "transparent",
-                                text_color="#000" if bv in sel_list else TEXT2
+                                text_color="#000" if bv in sel_list else TEXT2,
+                                border_color=AMBER if bv in sel_list else BORDER,
+                                border_width=2
                             )
                     return cmd
 
                 for label, value in zip(q["options"], q["values"]):
                     is_sel = value in current_vals
                     btn = ctk.CTkButton(btn_row, text=label,
-                                        font=ctk.CTkFont(family="Inter", size=10),
+                                        font=ctk.CTkFont(family="Inter", size=10, weight="bold"),
                                         fg_color=AMBER if is_sel else "transparent",
-                                        hover_color=BORDER2,
+                                        hover_color=CARD_HOVER,
                                         text_color="#000" if is_sel else TEXT2,
-                                        border_width=1, border_color=BORDER,
-                                        height=32, corner_radius=6)
-                    btn.pack(side="left", padx=(0, 6), pady=2)
+                                        border_width=2, border_color=AMBER if is_sel else BORDER,
+                                        height=36, corner_radius=8)
+                    btn.pack(side="left", padx=(0, 8), pady=2)
                     btn_refs.append((btn, value))
 
                 for btn, value in btn_refs:
-                    btn.configure(command=make_cmd(value, selected, btn_refs))
+                    btn.configure(command=make_cmd(value, selected, btn_refs, is_single))
 
             elif q["type"] == "text":
                 entry = ctk.CTkEntry(inner, placeholder_text=q.get("placeholder", ""),
                                      font=ctk.CTkFont(family="Inter", size=12),
-                                     fg_color=PANEL, border_color=BORDER, border_width=1,
+                                     fg_color=PANEL, border_color=BORDER2, border_width=2,
                                      text_color=TEXT, placeholder_text_color=TEXT2,
-                                     width=400, height=38, corner_radius=6)
+                                     width=400, height=40, corner_radius=8)
                 current_val = profile.get(q["key"], "")
                 if current_val:
                     entry.insert(0, current_val)
@@ -1737,13 +1758,13 @@ class AppWindow(ctk.CTk):
                       command=save_changes,
                       font=ctk.CTkFont(family="Inter", size=12, weight="bold"),
                       fg_color=AMBER, hover_color=AMBER2,
-                      text_color="#000", width=200, height=40, corner_radius=6).pack(side="left", padx=(0, 8))
+                      text_color="#000", width=220, height=44, corner_radius=8).pack(side="left", padx=(0, 8))
 
         ctk.CTkButton(btn_row2, text="CLOSE",
                       command=overlay.destroy,
                       font=ctk.CTkFont(family="Inter", size=12, weight="bold"),
-                      fg_color=BORDER, hover_color=BORDER2,
-                      text_color=TEXT, width=140, height=40, corner_radius=6).pack(side="left")
+                      fg_color=BORDER, hover_color=CARD_HOVER,
+                      text_color=TEXT, width=160, height=44, corner_radius=8).pack(side="left")
 
     # =========================================================================
     # Camera management

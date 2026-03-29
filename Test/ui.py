@@ -1493,7 +1493,7 @@ class AppWindow(ctk.CTk):
             inner._parent_canvas.yview_scroll(int(-1 * (e.delta / 120)), "units")
         inner.bind_all("<MouseWheel>", _on_modal_scroll)
 
-        # ── Avatar ────────────────────────────────────────────────────────────
+        # ── Avatar 
         avatar_frame = ctk.CTkFrame(inner, fg_color=CYAN,
                                     width=84, height=84, corner_radius=42)
         avatar_frame.pack(pady=(0, 6))

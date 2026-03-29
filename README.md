@@ -34,8 +34,7 @@ Noctua monitors driver alertness in real-time using a webcam. It detects eye clo
 
 ## Project Structure
 
-```
-noctua/
+```noctua/
 │
 ├── ui.py               # Main app window (CustomTkinter) — run this
 ├── detection.py        # Core detection loop (eye + head pose + alerts)
@@ -53,18 +52,35 @@ noctua/
 ├── sound.py            # macOS afplay — beep.wav, warning.wav
 ├── sms.py              # Gmail SMTP emergency email
 ├── emergency.py        # Emergency contact input (OpenCV fallback)
+├── weather_greeting.py # Weather + traffic context integration
 │
-├── test_voice.py       # Standalone voice recognition test
-├── test_fatigue.py     # Standalone fatigue detection test
-├── test_sos.py         # Standalone SOS countdown test
+├── config.py           # API keys, environment variables, configuration
+├── constants.py        # Shared constants (thresholds, tuning params)
 │
 ├── beep.wav            # Stage 1 alert sound
 ├── warning.wav         # Stage 2 alert sound
-├── welcome.mp4         # Welcome screen video (optional)
-└── users.db            # SQLite database (auto-created)
+├── completion.wav      # Voice interaction completion sound
 │
-├── weather_greeting    # Weather and traffic report 
-```
+├── icons8-alert-100.png
+├── icons8-closed-eye-100.png
+├── icons8-eye-100.png
+├── icons8-up-arrow-100.png
+│
+├── Noctua Logo with BG.png     # Branding asset
+├── Noctua symbol no BG.png     # Transparent logo
+├── Welcome To Noctua.mp4       # Welcome screen video
+│
+├── users.db            # SQLite database (auto-created)
+├── .env                # Environment variables (API keys, secrets)
+│
+├── MuseoModerno/       # Custom font assets
+├── Inter/              # Custom font assets
+│
+├── font_test.py        # Font rendering test
+├── main.py             # Alternative entry point 
+│
+├── .gitignore
+└── README.md
 
 ---
 

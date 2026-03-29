@@ -872,10 +872,10 @@ class AppWindow(ctk.CTk):
                                           text_color=GREEN)
         self._status_label.pack(side="right", padx=16)
 
-        self._session_label = ctk.CTkLabel(bar, text="00:00:00",
-                                           font=ctk.CTkFont(family="Inter", size=11),
-                                           text_color=TEXT2)
-        self._session_label.pack(side="right", padx=16)
+        self._session_label = ctk.CTkLabel(bar, text="00:00:00.000",
+                                           font=ctk.CTkFont(family="Inter", size=18, weight="bold"),
+                                           text_color=AMBER)
+        self._session_label.pack(side="right", padx=24)
 
         body = ctk.CTkFrame(self, fg_color=BG, corner_radius=0)
         body.pack(fill="both", expand=True)
@@ -918,54 +918,40 @@ class AppWindow(ctk.CTk):
         pad = {"padx": 16, "pady": (10, 2)}
 
         ctk.CTkLabel(parent, text="EAR VALUE",
-                     font=ctk.CTkFont(family="Inter", size=9),
-                     text_color=TEXT2).pack(anchor="w", padx=16, pady=(14, 0))
+                     font=ctk.CTkFont(family="Inter", size=10, weight="bold"),
+                     text_color=TEXT2).pack(anchor="w", padx=16, pady=(12, 4))
 
-        self._ear_canvas = ctk.CTkCanvas(parent, width=130, height=130,
+        ctk.CTkLabel(parent, text="Eye openness (0.0–0.4)",
+                     font=ctk.CTkFont(family="Inter", size=8),
+                     text_color=TEXT3).pack(anchor="w", padx=16, pady=(0, 8))
+
+        self._ear_canvas = ctk.CTkCanvas(parent, width=160, height=160,
                                          bg=PANEL, highlightthickness=0)
-        self._ear_canvas.pack(pady=4)
+        self._ear_canvas.pack(pady=8)
         self._draw_ear_ring(0.31)
 
         ctk.CTkFrame(parent, fg_color=BORDER2, height=2,
-                     corner_radius=0).pack(fill="x", padx=16, pady=8)
+                     corner_radius=0).pack(fill="x", padx=16, pady=12)
 
-        ctk.CTkLabel(parent, text="ALERT STAGE",
-                     font=ctk.CTkFont(family="Inter", size=9),
-                     text_color=TEXT2).pack(anchor="w", **pad)
+        # Dynamic alert stage display
+        ctk.CTkLabel(parent, text="ALERT STATUS",
+                     font=ctk.CTkFont(family="Inter", size=10, weight="bold"),
+                     text_color=TEXT2).pack(anchor="w", padx=16, pady=(0, 6))
 
-        self.stage_label = ctk.CTkLabel(parent, text="STAGE 0",
+        self._alert_card = ctk.CTkFrame(parent, fg_color=CARD, corner_radius=8)
+        self._alert_card.pack(fill="x", padx=12, pady=6)
+
+        self.stage_label = ctk.CTkLabel(self._alert_card, text="STAGE 0",
                                         font=ctk.CTkFont(family="Inter", size=18, weight="bold"),
                                         text_color=GREEN)
-        self.stage_label.pack(anchor="w", padx=16, pady=(0, 8))
+        self.stage_label.pack(anchor="w", padx=12, pady=(8, 2))
 
-        ctk.CTkFrame(parent, fg_color=BORDER, height=1,
-                     corner_radius=0).pack(fill="x", padx=16, pady=4)
+        self._alert_reason = ctk.CTkLabel(self._alert_card, text="Normal monitoring",
+                                          font=ctk.CTkFont(family="Inter", size=9),
+                                          text_color=TEXT2, wraplength=200, justify="left")
+        self._alert_reason.pack(anchor="w", padx=12, pady=(0, 8), fill="x")
 
-        for stage, desc, color in [
-            ("Stage 1", "3s — audio alarm", AMBER),
-            ("Stage 2", "5s — loud alarm",  "#FF8C00"),
-            ("SMS",     "8s — email alert", RED),
-        ]:
-            row = ctk.CTkFrame(parent, fg_color=CARD, corner_radius=6)
-            row.pack(fill="x", padx=12, pady=2)
-            ctk.CTkFrame(row, fg_color=color, width=4, corner_radius=0).pack(side="left", fill="y")
-            ctk.CTkLabel(row, text=stage,
-                         font=ctk.CTkFont(family="Inter", size=10, weight="bold"),
-                         text_color=color, width=56, anchor="w").pack(side="left", padx=8, pady=7)
-            ctk.CTkLabel(row, text=desc,
-                         font=ctk.CTkFont(family="Inter", size=9),
-                         text_color=TEXT2).pack(side="left")
-
-        ctk.CTkButton(
-            parent, text="STOP ALARM",
-            command=self._stop_alarm,
-            font=ctk.CTkFont(family="Inter", size=13, weight="bold"),
-            fg_color=RED, hover_color="#EE2222",
-            text_color="#FFFFFF", corner_radius=0, height=52
-        ).pack(fill="x", side="bottom")
-
-        ctk.CTkFrame(parent, fg_color=BORDER, height=1,
-                     corner_radius=0).pack(fill="x", side="bottom")
+        ctk.CTkFrame(parent, fg_color="transparent").pack(fill="y", expand=True)
 
     def _draw_ear_ring(self, ear_val):
         c = self._ear_canvas
@@ -998,8 +984,12 @@ class AppWindow(ctk.CTk):
         pad = {"padx": 14, "pady": (10, 2)}
 
         ctk.CTkLabel(parent, text="PERCLOS · 3s WINDOW",
-                     font=ctk.CTkFont(family="Inter", size=9),
-                     text_color=TEXT2).pack(anchor="w", padx=14, pady=(14, 0))
+                     font=ctk.CTkFont(family="Inter", size=9, weight="bold"),
+                     text_color=TEXT2).pack(anchor="w", padx=14, pady=(14, 2))
+
+        ctk.CTkLabel(parent, text="% of time eyes closed",
+                     font=ctk.CTkFont(family="Inter", size=8),
+                     text_color=TEXT3).pack(anchor="w", padx=14, pady=(0, 8))
 
         self._perclos_canvas = ctk.CTkCanvas(parent, width=220, height=120,
                                              bg=PANEL, highlightthickness=0)
@@ -1010,11 +1000,15 @@ class AppWindow(ctk.CTk):
                      corner_radius=0).pack(fill="x", padx=14, pady=6)
 
         ctk.CTkLabel(parent, text="ALERT LOG",
-                     font=ctk.CTkFont(family="Inter", size=9),
+                     font=ctk.CTkFont(family="Inter", size=8, weight="bold"),
                      text_color=TEXT2).pack(anchor="w", **pad)
 
+        ctk.CTkLabel(parent, text="Recent activity",
+                     font=ctk.CTkFont(family="Inter", size=8),
+                     text_color=TEXT3).pack(anchor="w", padx=14, pady=(0, 4))
+
         log_frame = ctk.CTkFrame(parent, fg_color="transparent")
-        log_frame.pack(fill="x", padx=14, pady=(0, 8))
+        log_frame.pack(fill="x", padx=14, pady=(0, 6))
 
         self._log_labels = []
         for _ in range(4):
@@ -1034,11 +1028,15 @@ class AppWindow(ctk.CTk):
                      corner_radius=0).pack(fill="x", padx=14, pady=6)
 
         ctk.CTkLabel(parent, text="SENSITIVITY",
-                     font=ctk.CTkFont(family="Inter", size=9),
+                     font=ctk.CTkFont(family="Inter", size=8, weight="bold"),
                      text_color=TEXT2).pack(anchor="w", **pad)
 
+        ctk.CTkLabel(parent, text="EAR threshold",
+                     font=ctk.CTkFont(family="Inter", size=8),
+                     text_color=TEXT3).pack(anchor="w", padx=14, pady=(0, 4))
+
         slider_row = ctk.CTkFrame(parent, fg_color="transparent")
-        slider_row.pack(fill="x", padx=14, pady=(2, 0))
+        slider_row.pack(fill="x", padx=14, pady=(0, 8))
 
         self._thresh_val_lbl = ctk.CTkLabel(slider_row, text="0.25",
                                             font=ctk.CTkFont(family="Inter", size=10),
@@ -1167,11 +1165,16 @@ class AppWindow(ctk.CTk):
                 def show():
                     try:
                         self._weather_icon_lbl.configure(text=icon)
-                        self._weather_text_lbl.configure(text=f"{desc}  {temp}°F")
+                        # Add user's first name if logged in and not guest
+                        user = self._user or {}
+                        greeting = ""
+                        if user.get("first_name"):
+                            greeting = f"Hi {user['first_name']}!  "
+                        self._weather_text_lbl.configure(text=f"{greeting}{desc}  {temp}°F")
                         self._weather_card.place(relx=0.97, rely=0.04, anchor="ne")
                         self.after(6000, self._fade_weather_card)
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        print(f"[Weather Show] Error: {e}")
                 self.after(0, show)
             except Exception as e:
                 print(f"[Weather] {e}")
@@ -1205,11 +1208,13 @@ class AppWindow(ctk.CTk):
             return
 
         if self._session_start:
-            elapsed = int(time.time() - self._session_start)
+            elapsed_total = time.time() - self._session_start
+            elapsed = int(elapsed_total)
             h = elapsed // 3600
             m = (elapsed % 3600) // 60
             s = elapsed % 60
-            self._session_label.configure(text=f"{h:02d}:{m:02d}:{s:02d}")
+            ms = int((elapsed_total % 1) * 1000)
+            self._session_label.configure(text=f"{h:02d}:{m:02d}:{s:02d}.{ms:03d}")
 
         frame = state.get("frame")
         if frame is not None:
@@ -1235,8 +1240,16 @@ class AppWindow(ctk.CTk):
 
         stage_colors = {0: GREEN, 1: AMBER, 2: "#FF8C00", 3: RED}
         stage_texts  = {0: "STAGE 0", 1: "STAGE 1", 2: "STAGE 2", 3: "SMS SENT"}
+        stage_reasons = {
+            0: "Normal monitoring",
+            1: "Eyes closed detected — audio alarm triggered",
+            2: "Prolonged drowsiness — loud alarm triggered",
+            3: "Critical fatigue — emergency contact notified"
+        }
         self.stage_label.configure(text=stage_texts.get(stage, "STAGE 0"),
                                    text_color=stage_colors.get(stage, GREEN))
+        self._alert_reason.configure(text=stage_reasons.get(stage, "Normal monitoring"),
+                                     text_color=stage_colors.get(stage, GREEN))
 
         if stage >= 2:
             self._status_label.configure(text="⚠  FATIGUE DETECTED", text_color=RED)

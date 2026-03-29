@@ -51,8 +51,8 @@ def greet():
         desc, temp = get_weather()
         traffic = get_traffic()
         message = (
-            f"Welcome. The weather is {desc}, {temp} degrees. "
-            f"Traffic is currently {traffic}. Have a safe drive."
+            f"Hey! The weather today in Tampa is {desc}, {temp} degrees. "
+            f"Traffic is currently {traffic}. Have a safe drive!"
         )
         print(message)
         speak(message)

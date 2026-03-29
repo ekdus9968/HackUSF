@@ -1199,7 +1199,7 @@ class AppWindow(ctk.CTk):
                         greeting = ""
                         if user.get("first_name"):
                             greeting = f"Hi {user['first_name']}!  "
-                        self._weather_text_lbl.configure(text=f"{greeting}{desc}  {temp}°F")
+                        self._weather_text_lbl.configure(text=f"{greeting}Tampa: {desc}  {temp}°F")
                         self._weather_card.place(relx=0.97, rely=0.04, anchor="ne")
                         self.after(6000, self._fade_weather_card)
                     except Exception as e:

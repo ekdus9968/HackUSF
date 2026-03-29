@@ -39,19 +39,24 @@ if __name__ == "__main__":
     # Calibration
     from calibration import calibrate
     from auth import save_calibration
-    cap = cv2.VideoCapture(0, cv2.CAP_AVFOUNDATION)
-    with mp.solutions.face_mesh.FaceMesh(
-        max_num_faces=1, refine_landmarks=True,
-        min_detection_confidence=0.5, min_tracking_confidence=0.5
-    ) as face_mesh:
-        if user.get("needs_calibration") or user.get("ear_threshold") is None:
+    if user.get("needs_calibration") or user.get("ear_threshold") is None:
+        import mediapipe as mp
+        cap = cv2.VideoCapture(0, cv2.CAP_AVFOUNDATION)
+        with mp.solutions.face_mesh.FaceMesh(
+            max_num_faces=1, refine_landmarks=True,
+            min_detection_confidence=0.5, min_tracking_confidence=0.5
+        ) as face_mesh:
             ear_threshold, pitch_baseline = calibrate(face_mesh, cap)
-            if user["user_id"] != "guest":
-                save_calibration(user["user_id"], ear_threshold, pitch_baseline)
-        else:
-            ear_threshold  = user["ear_threshold"]
-            pitch_baseline = user["pitch_baseline"]
-            print(f"[Auth] Loaded calibration — EAR: {ear_threshold:.3f}")
+        cap.release()
+        if user["user_id"] != "guest":
+            save_calibration(user["user_id"], ear_threshold, pitch_baseline)
+    else:
+        ear_threshold  = user["ear_threshold"]
+        pitch_baseline = user["pitch_baseline"]
+        print(f"[Auth] Loaded calibration — EAR: {ear_threshold:.3f}", file=sys.stderr)
+
+    state["ear_threshold"]  = ear_threshold
+    state["pitch_baseline"] = pitch_baseline
 
     cap.release()
     cv2.destroyAllWindows()

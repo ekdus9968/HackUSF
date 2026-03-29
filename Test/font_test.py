@@ -4,7 +4,7 @@ root = ctk.CTk()
 
 label = ctk.CTkLabel(
     root,
-    text="NOCTURA",
+    text="NOCTUA",
     font=ctk.CTkFont(family="MuseoModerno", size=30, weight="bold")
 )
 label.pack(pady=50)

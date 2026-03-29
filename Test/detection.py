@@ -1,5 +1,5 @@
 # =============================================================================
-# detection.py — Noctura core detection module
+# detection.py — Noctua core detection module
 # =============================================================================
 # Merged: UI state bridge + waiting mode + voice stop + chat +
 #         FatigueDetector + SessionRecorder

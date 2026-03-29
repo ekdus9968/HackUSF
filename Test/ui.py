@@ -1,11 +1,9 @@
 # =============================================================================
 # ui.py — Noctura unified application window
 # =============================================================================
-# One window, one mainloop, five pages.
-# Pages: Welcome → Auth → Emergency Contact → Calibration → Dashboard → Report
-# =============================================================================
 
 import os
+import io
 import cv2
 import time
 import threading
@@ -15,14 +13,13 @@ import customtkinter as ctk
 from PIL import Image, ImageTk
 
 from config import state
-from auth import _init_db, _sign_in, _create_user, save_calibration
+from auth import _init_db, _sign_in, _create_user, save_calibration, save_driver_profile, PROFILE_QUESTIONS
 from constants import LEFT_EYE, RIGHT_EYE, calculate_EAR, calculate_pitch
 from detection import run as run_detection
 
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("dark-blue")
 
-# ── Theme ─────────────────────────────────────────────────────────────────────
 BG      = "#0A0E1A"
 PANEL   = "#0D1224"
 BORDER  = "#1A2440"
@@ -36,14 +33,6 @@ TEXT    = "#D8E4F8"
 TEXT2   = "#5A7090"
 TEXT3   = "#384860"
 CARD    = "#0F1428"
-
-# Fonts
-FONT_TITLE  = ("MuseoModerno", 20)
-FONT_HEADER = ("MuseoModerno", 16)
-
-FONT_BODY   = ("Inter", 12)          # or Exo 2
-FONT_SMALL  = ("Inter", 10)
-FONT_MONO   = ("JetBrains Mono", 11)
 
 CAL_STEPS = [
     {"title": "OPEN EYES",     "instruction": "Look straight at the camera with your eyes fully open.", "sub": "Hold still — we're measuring your natural eye openness.", "color": GREEN, "icon": "👁",  "samples": 60},
@@ -64,26 +53,26 @@ class AppWindow(ctk.CTk):
 
         _init_db()
 
-        self._user               = None
-        self._cal_step           = 0
-        self._cal_collecting     = False
-        self._cal_samples        = []
-        self._cal_open_avg       = 0.0
-        self._cal_done           = False
-        self._ear_threshold      = 0.25
-        self._pitch_baseline     = 0.0
-        self._cap                = None
-        self._face_mesh          = None
-        self._cam_active         = False
-        self._photo              = None
-        self._detection_started  = False
-        self._welcome_playing    = False
-        self._welcome_cap        = None
-        self._alert_log          = []
-        self._session_start      = None
+        self._user              = None
+        self._cal_step          = 0
+        self._cal_collecting    = False
+        self._cal_samples       = []
+        self._cal_open_avg      = 0.0
+        self._cal_done          = False
+        self._ear_threshold     = 0.25
+        self._pitch_baseline    = 0.0
+        self._cap               = None
+        self._face_mesh         = None
+        self._cam_active        = False
+        self._photo             = None
+        self._detection_started = False
+        self._welcome_playing   = False
+        self._welcome_cap       = None
+        self._alert_log         = []
+        self._session_start     = None
+        self._dashboard_active  = False
 
         self._show_welcome()
-        self._dashboard_active = False
 
     # =========================================================================
     # Shared helpers
@@ -149,7 +138,7 @@ class AppWindow(ctk.CTk):
         return (b, g, r)
 
     # =========================================================================
-    # Page 1 — Welcome (video background)
+    # Page 1 — Welcome
     # =========================================================================
 
     def _show_welcome(self):
@@ -162,10 +151,8 @@ class AppWindow(ctk.CTk):
         self._welcome_canvas = ctk.CTkCanvas(outer, bg="#000", highlightthickness=0)
         self._welcome_canvas.pack(fill="both", expand=True)
 
-        # Try to load video
-        video_extensions = [".mp4", ".mov", ".avi", ".m4v"]
         video_path = None
-        for ext in video_extensions:
+        for ext in [".mp4", ".mov", ".avi", ".m4v"]:
             p = os.path.join(os.path.dirname(__file__), f"Welcome To Noctua{ext}")
             if os.path.exists(p):
                 video_path = p
@@ -176,13 +163,9 @@ class AppWindow(ctk.CTk):
             self._welcome_playing = True
             self._play_welcome_video()
         else:
-            # Fallback — static welcome
             self._welcome_canvas.create_text(
-                400, 300, text="NOCTURA", fill=AMBER,
-                font=("Courier", 48, "bold")
-            )
+                400, 300, text="NOCTURA", fill=AMBER, font=("Courier", 48, "bold"))
 
-        # GET STARTED button overlaid
         ctk.CTkButton(
             outer, text="GET STARTED →",
             command=self._stop_welcome_and_start,
@@ -292,41 +275,41 @@ class AppWindow(ctk.CTk):
         outer = ctk.CTkFrame(self, fg_color=BG)
         outer.pack(fill="both", expand=True)
         card = ctk.CTkFrame(outer, fg_color=CARD, corner_radius=16,
-                            border_width=1, border_color=BORDER, width=560)
+                            border_width=1, border_color=BORDER, width=560, height=640)
         card.place(relx=0.5, rely=0.5, anchor="center")
         card.pack_propagate(False)
         inner = ctk.CTkFrame(card, fg_color="transparent")
-        inner.pack(padx=48, pady=32, fill="both", expand=True)
+        inner.pack(padx=48, pady=24, fill="both", expand=True)
 
         ctk.CTkLabel(inner, text="CREATE ACCOUNT",
                      font=ctk.CTkFont(family="Courier", size=20, weight="bold"),
                      text_color=AMBER).pack(pady=(0, 4))
         ctk.CTkLabel(inner, text="calibration runs after — saves your personal eye baseline",
                      font=ctk.CTkFont(family="Courier", size=10),
-                     text_color=TEXT2).pack(pady=(0, 16))
+                     text_color=TEXT2).pack(pady=(0, 12))
 
         name_row = ctk.CTkFrame(inner, fg_color="transparent")
-        name_row.pack(pady=(0, 10))
+        name_row.pack(pady=(0, 8))
         first_e = self._entry(name_row, "First name", width=185)
         first_e.pack(side="left", padx=(0, 8))
-        last_e  = self._entry(name_row, "Last name",  width=185)
+        last_e  = self._entry(name_row, "Last name", width=185)
         last_e.pack(side="left")
 
         uid_e   = self._entry(inner, "User ID  (letters, numbers, _ only)")
-        uid_e.pack(pady=(0, 10))
+        uid_e.pack(pady=(0, 8))
         pw_e    = self._entry(inner, "Password  (min 6 characters)", show="●")
-        pw_e.pack(pady=(0, 10))
+        pw_e.pack(pady=(0, 8))
         pw2_e   = self._entry(inner, "Confirm password", show="●")
-        pw2_e.pack(pady=(0, 10))
+        pw2_e.pack(pady=(0, 8))
         gmail_e = self._entry(inner, "Personal Gmail")
-        gmail_e.pack(pady=(0, 10))
+        gmail_e.pack(pady=(0, 8))
         em_e    = self._entry(inner, "Emergency email  (optional)")
         em_e.pack(pady=(0, 4))
 
         err = ctk.CTkLabel(inner, text="",
                            font=ctk.CTkFont(family="Courier", size=10),
                            text_color=RED)
-        err.pack(pady=(0, 8))
+        err.pack(pady=(0, 6))
 
         def do_create():
             first = first_e.get().strip()
@@ -351,11 +334,20 @@ class AppWindow(ctk.CTk):
             self._user = user
             self._after_auth()
 
+        # Tab order + Enter to submit — AFTER do_create is defined
+        entries = [first_e, last_e, uid_e, pw_e, pw2_e, gmail_e, em_e]
+        for i, e in enumerate(entries):
+            next_e = entries[(i + 1) % len(entries)]
+            e.bind("<Tab>", lambda ev, n=next_e: (n.focus(), "break"))
+            e.bind("<Return>", lambda ev: do_create())
+
         self._btn(inner, "CREATE ACCOUNT & CALIBRATE", do_create)
         ctk.CTkButton(inner, text="← back to sign in", command=self._show_signin,
                       font=ctk.CTkFont(family="Courier", size=10),
                       fg_color="transparent", hover_color=PANEL,
                       text_color=TEXT2).pack()
+
+        self.bind("<Return>", lambda e: do_create())
         first_e.focus()
 
     def _do_guest(self):
@@ -668,7 +660,6 @@ class AppWindow(ctk.CTk):
         if not self._cam_active:
             self._start_camera()
 
-        # ── Title bar ─────────────────────────────────────────────────────────
         bar = ctk.CTkFrame(self, fg_color=PANEL, height=36,
                            corner_radius=0, border_width=1, border_color=BORDER)
         bar.pack(fill="x", side="top")
@@ -697,7 +688,6 @@ class AppWindow(ctk.CTk):
                       text_color=TEXT2, border_width=1, border_color=BORDER,
                       width=110, height=26, corner_radius=4).pack(side="right", padx=8)
 
-        # ── Three column body ──────────────────────────────────────────────────
         body = ctk.CTkFrame(self, fg_color=BG, corner_radius=0)
         body.pack(fill="both", expand=True)
 
@@ -722,7 +712,8 @@ class AppWindow(ctk.CTk):
 
     def _end_session(self):
         self._dashboard_active = False
-        state["end_session"] = True
+        state["end_session"]   = True
+        state["session_id"]    = None
         self.after(500, self._wait_for_session_save)
 
     def _wait_for_session_save(self):
@@ -806,24 +797,25 @@ class AppWindow(ctk.CTk):
                       font=("Courier", 9), fill=TEXT2)
 
     # ── Right panel ───────────────────────────────────────────────────────────
+
     def _build_right_panel(self, parent):
         pad = {"padx": 14, "pady": (10, 2)}
 
         ctk.CTkLabel(parent, text="PERCLOS · 3s WINDOW",
-                    font=ctk.CTkFont(family="Courier", size=9),
-                    text_color=TEXT2).pack(anchor="w", padx=14, pady=(14, 0))
+                     font=ctk.CTkFont(family="Courier", size=9),
+                     text_color=TEXT2).pack(anchor="w", padx=14, pady=(14, 0))
 
         self._perclos_canvas = ctk.CTkCanvas(parent, width=220, height=120,
-                                            bg=PANEL, highlightthickness=0)
+                                             bg=PANEL, highlightthickness=0)
         self._perclos_canvas.pack(pady=4)
         self._draw_perclos_arc(0.0)
 
         ctk.CTkFrame(parent, fg_color=BORDER, height=1,
-                    corner_radius=0).pack(fill="x", padx=14, pady=6)
+                     corner_radius=0).pack(fill="x", padx=14, pady=6)
 
         ctk.CTkLabel(parent, text="ALERT LOG",
-                    font=ctk.CTkFont(family="Courier", size=9),
-                    text_color=TEXT2).pack(anchor="w", **pad)
+                     font=ctk.CTkFont(family="Courier", size=9),
+                     text_color=TEXT2).pack(anchor="w", **pad)
 
         log_frame = ctk.CTkFrame(parent, fg_color="transparent")
         log_frame.pack(fill="x", padx=14, pady=(0, 8))
@@ -833,21 +825,21 @@ class AppWindow(ctk.CTk):
             row = ctk.CTkFrame(log_frame, fg_color="transparent")
             row.pack(fill="x", pady=1)
             dot = ctk.CTkLabel(row, text="●",
-                            font=ctk.CTkFont(family="Courier", size=8),
-                            text_color=BORDER, width=14)
+                               font=ctk.CTkFont(family="Courier", size=8),
+                               text_color=BORDER, width=14)
             dot.pack(side="left")
             lbl = ctk.CTkLabel(row, text="—",
-                            font=ctk.CTkFont(family="Courier", size=9),
-                            text_color=TEXT3, anchor="w")
+                               font=ctk.CTkFont(family="Courier", size=9),
+                               text_color=TEXT3, anchor="w")
             lbl.pack(side="left", fill="x", expand=True)
             self._log_labels.append((dot, lbl))
 
         ctk.CTkFrame(parent, fg_color=BORDER, height=1,
-                    corner_radius=0).pack(fill="x", padx=14, pady=6)
+                     corner_radius=0).pack(fill="x", padx=14, pady=6)
 
         ctk.CTkLabel(parent, text="SENSITIVITY",
-                    font=ctk.CTkFont(family="Courier", size=9),
-                    text_color=TEXT2).pack(anchor="w", **pad)
+                     font=ctk.CTkFont(family="Courier", size=9),
+                     text_color=TEXT2).pack(anchor="w", **pad)
 
         slider_row = ctk.CTkFrame(parent, fg_color="transparent")
         slider_row.pack(fill="x", padx=14, pady=(2, 0))
@@ -858,15 +850,35 @@ class AppWindow(ctk.CTk):
         self._thresh_val_lbl.pack(side="right")
 
         self._slider = ctk.CTkSlider(slider_row, from_=15, to=35,
-                                    button_color=AMBER,
-                                    button_hover_color=AMBER2,
-                                    progress_color=AMBER,
-                                    fg_color=BORDER2,
-                                    command=self._on_slider)
+                                     button_color=AMBER,
+                                     button_hover_color=AMBER2,
+                                     progress_color=AMBER,
+                                     fg_color=BORDER2,
+                                     command=self._on_slider)
         self._slider.set(25)
         self._slider.pack(side="left", fill="x", expand=True, padx=(0, 8))
 
         ctk.CTkFrame(parent, fg_color="transparent").pack(fill="y", expand=True)
+
+        gem_card = ctk.CTkFrame(parent, fg_color="#0A1A0F", corner_radius=8,
+                                border_width=1, border_color="#1A3020")
+        gem_card.pack(fill="x", padx=14, pady=(0, 14))
+
+        header = ctk.CTkFrame(gem_card, fg_color="transparent")
+        header.pack(fill="x", padx=10, pady=(8, 4))
+        ctk.CTkLabel(header, text="●",
+                     font=ctk.CTkFont(family="Courier", size=8),
+                     text_color=GREEN).pack(side="left")
+        ctk.CTkLabel(header, text="  NOCTURA AI · SESSION INSIGHT",
+                     font=ctk.CTkFont(family="Courier", size=8),
+                     text_color=GREEN).pack(side="left")
+
+        self._gemini_lbl = ctk.CTkLabel(gem_card,
+                                        text="Monitoring active. No events yet.",
+                                        font=ctk.CTkFont(family="Courier", size=9),
+                                        text_color=TEXT2,
+                                        wraplength=220, justify="left", anchor="w")
+        self._gemini_lbl.pack(fill="x", padx=10, pady=(0, 10))
 
     def _draw_perclos_arc(self, perclos_val):
         c = self._perclos_canvas
@@ -917,6 +929,7 @@ class AppWindow(ctk.CTk):
     def _dashboard_loop(self):
         if not self._dashboard_active:
             return
+
         if self._session_start:
             elapsed = int(time.time() - self._session_start)
             h = elapsed // 3600
@@ -939,12 +952,11 @@ class AppWindow(ctk.CTk):
             except Exception:
                 pass
 
-        ear   = state.get("ear", 0.0)
-        stage = state.get("alert_stage", 0)
-        self._draw_ear_ring(ear)
-
-        # Use real PERCLOS from detection
+        ear     = state.get("ear", 0.0)
+        stage   = state.get("alert_stage", 0)
         perclos = state.get("perclos", 0.0)
+
+        self._draw_ear_ring(ear)
         self._draw_perclos_arc(perclos)
 
         stage_colors = {0: GREEN, 1: AMBER, 2: "#FF8C00", 3: RED}
@@ -968,7 +980,18 @@ class AppWindow(ctk.CTk):
             self.stop_btn.place(relx=0.5, rely=0.88, anchor="center")
         else:
             self.stop_btn.place_forget()
-            
+
+        alert_count   = len(self._alert_log)
+        fatigue_flags = state.get("fatigue_flags", [])
+        if alert_count == 0:
+            self._gemini_lbl.configure(text="Monitoring active. No events yet.")
+        elif fatigue_flags:
+            self._gemini_lbl.configure(text=f"Signals: {', '.join(fatigue_flags)}. {alert_count} alert(s).")
+        elif alert_count == 1:
+            self._gemini_lbl.configure(text="1 alert so far. Stay focused.")
+        else:
+            self._gemini_lbl.configure(text=f"{alert_count} alerts. Consider a break soon.")
+
         self.after(33, self._dashboard_loop)
 
     def _add_log_entry(self, stage):
@@ -1004,6 +1027,7 @@ class AppWindow(ctk.CTk):
     # =========================================================================
     # Page 6 — Session Report
     # =========================================================================
+
     def _show_report(self):
         self._clear()
         self._stop_camera()
@@ -1017,17 +1041,14 @@ class AppWindow(ctk.CTk):
         outer = ctk.CTkFrame(self, fg_color=BG)
         outer.pack(fill="both", expand=True)
 
-        # Tab bar
         tab_bar = ctk.CTkFrame(outer, fg_color=PANEL, height=40,
-                            corner_radius=0, border_width=1, border_color=BORDER)
+                               corner_radius=0, border_width=1, border_color=BORDER)
         tab_bar.pack(fill="x")
         tab_bar.pack_propagate(False)
 
-        # Canvas for graph image
         self._report_canvas = ctk.CTkCanvas(outer, bg="#0a0c0f", highlightthickness=0)
         self._report_canvas.pack(fill="both", expand=True)
 
-        # Loading label
         self._report_loading = ctk.CTkLabel(
             outer, text="Building your report...",
             font=ctk.CTkFont(family="Courier", size=13),
@@ -1035,33 +1056,31 @@ class AppWindow(ctk.CTk):
         )
         self._report_loading.place(relx=0.5, rely=0.5, anchor="center")
 
-        # Bottom bar
         bottom = ctk.CTkFrame(outer, fg_color=PANEL, height=52,
-                            corner_radius=0, border_width=1, border_color=BORDER)
+                              corner_radius=0, border_width=1, border_color=BORDER)
         bottom.pack(fill="x", side="bottom")
         bottom.pack_propagate(False)
 
         ctk.CTkButton(bottom, text="CLOSE APP",
-                    command=self._on_close,
-                    font=ctk.CTkFont(family="Courier", size=12, weight="bold"),
-                    fg_color=BORDER, hover_color=BORDER2,
-                    text_color=TEXT, corner_radius=6,
-                    width=160, height=34).pack(side="right", padx=16, pady=9)
-
-        # Tab buttons
-        self._report_tab = "session"
+                      command=self._on_close,
+                      font=ctk.CTkFont(family="Courier", size=12, weight="bold"),
+                      fg_color=BORDER, hover_color=BORDER2,
+                      text_color=TEXT, corner_radius=6,
+                      width=160, height=34).pack(side="right", padx=16, pady=9)
 
         def show_session_tab():
-            self._report_tab = "session"
             session_btn.configure(fg_color=AMBER, text_color="#000")
             history_btn.configure(fg_color="transparent", text_color=TEXT2)
-            self._render_report_figure(session_id, user_name, user_id, "session")
+            threading.Thread(target=self._render_report_figure,
+                             args=(session_id, user_name, user_id, "session"),
+                             daemon=True).start()
 
         def show_history_tab():
-            self._report_tab = "history"
             history_btn.configure(fg_color=AMBER, text_color="#000")
             session_btn.configure(fg_color="transparent", text_color=TEXT2)
-            self._render_report_figure(session_id, user_name, user_id, "history")
+            threading.Thread(target=self._render_report_figure,
+                             args=(session_id, user_name, user_id, "history"),
+                             daemon=True).start()
 
         session_btn = ctk.CTkButton(tab_bar, text="THIS SESSION",
                                     command=show_session_tab,
@@ -1079,20 +1098,15 @@ class AppWindow(ctk.CTk):
         history_btn.pack(side="left", padx=4, pady=6)
 
         ctk.CTkLabel(tab_bar, text="Session saved ✓",
-                    font=ctk.CTkFont(family="Courier", size=10),
-                    text_color=GREEN).pack(side="right", padx=16)
+                     font=ctk.CTkFont(family="Courier", size=10),
+                     text_color=GREEN).pack(side="right", padx=16)
 
-        # Auto-load session tab
-        threading.Thread(
-            target=self._render_report_figure,
-            args=(session_id, user_name, user_id, "session"),
-            daemon=True
-        ).start()
+        threading.Thread(target=self._render_report_figure,
+                         args=(session_id, user_name, user_id, "session"),
+                         daemon=True).start()
 
     def _render_report_figure(self, session_id, user_name, user_id, tab):
-        """Render matplotlib figure to PNG and display on canvas."""
         try:
-            import io
             from report import get_session_figure, get_history_figure
 
             if tab == "session":
@@ -1105,33 +1119,24 @@ class AppWindow(ctk.CTk):
                         facecolor="#0a0c0f")
             buf.seek(0)
             img = Image.open(buf).copy()
-            plt_img = img
 
             def update():
                 try:
                     cw = self._report_canvas.winfo_width()
                     ch = self._report_canvas.winfo_height()
-                    if cw > 10 and ch > 10:
-                        img_resized = plt_img.resize((cw, ch), Image.LANCZOS)
-                    else:
-                        img_resized = plt_img
+                    img_resized = img.resize((cw, ch), Image.LANCZOS) if cw > 10 and ch > 10 else img
                     self._report_photo = ImageTk.PhotoImage(img_resized)
                     self._report_canvas.delete("all")
                     self._report_canvas.create_image(0, 0, anchor="nw", image=self._report_photo)
                     self._report_loading.place_forget()
                 except Exception as e:
-                    print(f"[Report] UI update error: {e}")
+                    print(f"[Report] UI error: {e}")
 
             self.after(0, update)
 
         except Exception as e:
             print(f"[Report] Render error: {e}")
-            def show_err():
-                try:
-                    self._report_loading.configure(text=f"Report error: {e}")
-                except Exception:
-                    pass
-            self.after(0, show_err)
+            self.after(0, lambda: self._report_loading.configure(text=f"Report error: {e}"))
 
     # =========================================================================
     # Camera management
@@ -1157,7 +1162,8 @@ class AppWindow(ctk.CTk):
             self._face_mesh = None
 
     def _on_close(self):
-        self._welcome_playing = False
+        self._dashboard_active = False
+        self._welcome_playing  = False
         if self._welcome_cap:
             self._welcome_cap.release()
         self._stop_camera()

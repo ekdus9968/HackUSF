@@ -1,367 +1,857 @@
-# Dependencies:
-#   - customtkinter  : modern dark-themed Tkinter wrapper
-#   - opencv-python  : webcam frame capture
-#   - Pillow         : converts OpenCV frames to Tkinter-compatible images
-#   - config.py      : shared state dict read/written by all modules
+# =============================================================================
+# ui.py — Noctura unified application window
+# =============================================================================
+# One window, one mainloop, five pages.
+# Pages: Welcome → Auth → Emergency Contact → Calibration → Dashboard
+# =============================================================================
 
-import customtkinter as ctk
 import cv2
+import threading
+import mediapipe as mp
+import numpy as np
+import customtkinter as ctk
 from PIL import Image, ImageTk
 
 from config import state
+from auth import _init_db, _sign_in, _create_user, save_calibration
+from constants import LEFT_EYE, RIGHT_EYE, calculate_EAR, calculate_pitch
+from detection import run as run_detection
 
-# Theme & color constants
-# Cockpit instrument panel aesthetic — dark bg, amber accents, status colors.
-# All colors defined here so they're easy to tweak in one place.
- 
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("dark-blue")
- 
-BG     = "#080C12"   # main window background
-PANEL  = "#0D1219"   # sidebar / panel background
-BORDER = "#1A2332"   # subtle border color
-AMBER  = "#F5A623"   # primary accent — EAR value, headings
-RED    = "#FF3A3A"   # danger — Stage 2 alert, stop button
-GREEN  = "#00E87A"   # safe — monitoring state, good EAR
-TEXT   = "#C8D8E8"   # primary text
-TEXT2  = "#607080"   # secondary / muted text
 
-# main application class
+# ── Theme ─────────────────────────────────────────────────────────────────────
+BG     = "#080C12"
+PANEL  = "#0D1219"
+BORDER = "#1A2332"
+AMBER  = "#F5A623"
+GREEN  = "#00E87A"
+RED    = "#FF3A3A"
+CYAN   = "#00C8E8"
+TEXT   = "#C8D8E8"
+TEXT2  = "#607080"
+CARD   = "#0F1520"
 
-class AlertEyeApp(ctk.CTk):
+# ── Calibration step definitions ──────────────────────────────────────────────
+CAL_STEPS = [
+    {"title": "OPEN EYES",    "instruction": "Look straight at the camera with your eyes fully open.", "sub": "Hold still — we're measuring your natural eye openness.", "color": GREEN,  "icon": "👁",  "samples": 60},
+    {"title": "CLOSE EYES",   "instruction": "Now slowly close your eyes completely.",                  "sub": "Keep your head still — this sets your closed-eye baseline.", "color": AMBER,  "icon": "😑", "samples": 60},
+    {"title": "LOOK STRAIGHT","instruction": "Open your eyes and look straight ahead naturally.",       "sub": "This calibrates your head pose — no need to tilt.",          "color": CYAN,   "icon": "⬆",  "samples": 60},
+]
+
+
+class AppWindow(ctk.CTk):
     """
-    Main window class. Inherits from ctk.CTk (customtkinter's root window).
-    Builds the full UI layout and runs a 33ms update loop for the webcam feed.
+    Single fullscreen window managing all app screens.
+    Swaps content by destroying and rebuilding the content frame.
     """
- 
+
     def __init__(self):
         super().__init__()
- 
-        # Window configuration 
-        self.title("AlertEye — Driver Monitoring System")
-        self.resizable(True, True)   # must be True for zoomed to work
-        self.after(100, lambda: self.state("zoomed"))   # small delay helps on Mac
-        self.configure(fg_color=BG)    # set background to cockpit dark color
+        self.title("Noctura")
+        self.configure(fg_color=BG)
+        self.resizable(True, True)
+        self.after(100, lambda: self.state("zoomed"))
+        self.protocol("WM_DELETE_WINDOW", self._on_close)
 
-        # Initialize camera
-        cap = cv2.VideoCapture(0, cv2.CAP_AVFOUNDATION)
- 
-        # Build UI then start the update loop
-        self._build_ui()
-        self._update()    # starts the 33ms webcam + state refresh loop
- 
- # UI Layout
- 
-    def _build_ui(self):
-        """
-        Constructs the full window layout:
-          - Title bar across the top
-          - Left panel (EAR value, alert stage, thresholds, stop button)
-          - Center area (live webcam canvas + alert overlay text)
-        """
-        self._build_title_bar()
-        self._build_body()
- 
-    def _build_title_bar(self):
-        """
-        Thin bar across the top of the window showing:
-          - App name (left)
-          - Session label (center)
-          - Live status indicator (right) — updates with alert state
-        """
-        title_bar = ctk.CTkFrame(self, fg_color=PANEL, height=36, corner_radius=0)
-        title_bar.pack(fill="x", side="top")
-        title_bar.pack_propagate(False)   # prevent frame from shrinking to fit children
- 
-        # App name
-        ctk.CTkLabel(
-            title_bar,
-            text="AlertEye",
-            font=ctk.CTkFont(family="Courier", size=14, weight="bold"),
-            text_color=AMBER
-        ).pack(side="left", padx=16)
- 
-        # Session subtitle
-        ctk.CTkLabel(
-            title_bar,
-            text="DRIVER MONITORING SYSTEM · ACTIVE SESSION",
-            font=ctk.CTkFont(size=11),
-            text_color=TEXT2
-        ).pack(side="left", padx=8)
- 
-        # Status indicator — updated every frame in _sync_state()
-        self.status_label = ctk.CTkLabel(
-            title_bar,
-            text="● MONITORING",
-            font=ctk.CTkFont(family="Courier", size=11),
-            text_color=GREEN
-        )
-        self.status_label.pack(side="right", padx=16)
- 
-    def _build_body(self):
-        """
-        Main content area below the title bar.
-        Two columns: left info panel + center webcam feed.
-        """
+        _init_db()
+
+        # User session
+        self._user = None
+
+        # Calibration state
+        self._cal_step       = 0
+        self._cal_collecting = False
+        self._cal_samples    = []
+        self._cal_open_avg   = 0.0
+        self._cal_closed_avg = 0.0
+        self._cal_done       = False
+        self._ear_threshold  = 0.25
+        self._pitch_baseline = 0.0
+
+        # Camera + mediapipe (shared across calibration and dashboard)
+        self._cap        = None
+        self._face_mesh  = None
+        self._cam_active = False
+        self._photo      = None
+
+        # Dashboard state
+        self._detection_started = False
+
+        self._show_welcome()
+
+    # =========================================================================
+    # Shared title bar
+    # =========================================================================
+
+    def _title_bar(self, subtitle="", step=""):
+        bar = ctk.CTkFrame(self, fg_color=PANEL, height=40,
+                           corner_radius=0, border_width=1, border_color=BORDER)
+        bar.pack(fill="x", side="top")
+        bar.pack_propagate(False)
+
+        ctk.CTkLabel(bar, text="NOCTURA",
+                     font=ctk.CTkFont(family="Courier", size=13, weight="bold"),
+                     text_color=AMBER).pack(side="left", padx=16)
+
+        if subtitle:
+            ctk.CTkLabel(bar, text=subtitle,
+                         font=ctk.CTkFont(family="Courier", size=11),
+                         text_color=TEXT2).pack(side="left", padx=8)
+
+        if step:
+            ctk.CTkLabel(bar, text=step,
+                         font=ctk.CTkFont(family="Courier", size=10),
+                         text_color=TEXT2).pack(side="right", padx=16)
+
+        return bar
+
+    # =========================================================================
+    # Screen manager
+    # =========================================================================
+
+    def _clear(self):
+        for w in self.winfo_children():
+            w.destroy()
+
+    def _card(self, width=500, height=480):
+        outer = ctk.CTkFrame(self, fg_color=BG)
+        outer.pack(fill="both", expand=True)
+        card = ctk.CTkFrame(outer, fg_color=CARD, corner_radius=16,
+                            border_width=1, border_color=BORDER,
+                            width=width, height=height)
+        card.place(relx=0.5, rely=0.5, anchor="center")
+        card.pack_propagate(False)
+        inner = ctk.CTkFrame(card, fg_color="transparent")
+        inner.place(relx=0.5, rely=0.5, anchor="center")
+        return outer, card, inner
+
+    def _entry(self, parent, placeholder, show="", width=380):
+        return ctk.CTkEntry(parent, placeholder_text=placeholder,
+                            font=ctk.CTkFont(family="Courier", size=13),
+                            fg_color=PANEL, border_color=BORDER, border_width=1,
+                            text_color=TEXT, placeholder_text_color=TEXT2,
+                            width=width, height=42, corner_radius=6, show=show)
+
+    def _btn(self, parent, text, cmd, fg=AMBER, tc="#000", outline=False, width=380, pady=6):
+        b = ctk.CTkButton(parent, text=text, command=cmd,
+                          font=ctk.CTkFont(family="Courier", size=12, weight="bold"),
+                          fg_color="transparent" if outline else fg,
+                          hover_color=PANEL if outline else "#E8920D",
+                          text_color=TEXT2 if outline else tc,
+                          border_width=1 if outline else 0,
+                          border_color=BORDER if outline else fg,
+                          width=width, height=42, corner_radius=6)
+        b.pack(pady=pady)
+        return b
+
+    # =========================================================================
+    # Page 1 — Welcome
+    # =========================================================================
+
+    def _show_welcome(self):
+        self._clear()
+        self._stop_camera()
+        self._title_bar()
+        _, _, inner = self._card(460, 400)
+
+        ctk.CTkLabel(inner, text="◉",
+                     font=ctk.CTkFont(family="Courier", size=72),
+                     text_color=AMBER).pack(pady=(0, 4))
+        ctk.CTkLabel(inner, text="NOCTURA",
+                     font=ctk.CTkFont(family="Courier", size=30, weight="bold"),
+                     text_color=TEXT).pack()
+        ctk.CTkLabel(inner, text="driver awareness system",
+                     font=ctk.CTkFont(family="Courier", size=11),
+                     text_color=TEXT2).pack(pady=(4, 32))
+        self._btn(inner, "GET STARTED →", self._show_signin)
+        ctk.CTkLabel(inner, text="hackusf 2025 · v1.0",
+                     font=ctk.CTkFont(family="Courier", size=9),
+                     text_color=BORDER).pack(pady=(20, 0))
+
+    # =========================================================================
+    # Page 2 — Sign In
+    # =========================================================================
+
+    def _show_signin(self):
+        self._clear()
+        self._title_bar("SIGN IN", "STEP 1 OF 3")
+        _, _, inner = self._card(500, 560)
+
+        ctk.CTkLabel(inner, text="SIGN IN",
+                     font=ctk.CTkFont(family="Courier", size=22, weight="bold"),
+                     text_color=AMBER).pack(pady=(0, 4))
+        ctk.CTkLabel(inner, text="welcome back",
+                     font=ctk.CTkFont(family="Courier", size=10),
+                     text_color=TEXT2).pack(pady=(0, 20))
+
+        uid_e = self._entry(inner, "User ID")
+        uid_e.pack(pady=(0, 10))
+        pw_e  = self._entry(inner, "Password", show="●")
+        pw_e.pack(pady=(0, 4))
+
+        err = ctk.CTkLabel(inner, text="",
+                           font=ctk.CTkFont(family="Courier", size=10),
+                           text_color=RED)
+        err.pack(pady=(0, 10))
+
+        def do_signin():
+            user = _sign_in(uid_e.get().strip(), pw_e.get())
+            if user:
+                self._user = user
+                self._after_auth()
+            else:
+                err.configure(text="Incorrect user ID or password.")
+                pw_e.delete(0, "end")
+
+        self._btn(inner, "SIGN IN", do_signin)
+
+        ctk.CTkFrame(inner, fg_color=BORDER, height=1, width=380,
+                     corner_radius=0).pack(pady=10)
+
+        row = ctk.CTkFrame(inner, fg_color="transparent")
+        row.pack()
+        ctk.CTkButton(row, text="Create Account", command=self._show_create,
+                      font=ctk.CTkFont(family="Courier", size=11),
+                      fg_color="transparent", hover_color=PANEL,
+                      text_color=TEXT2, border_width=1, border_color=BORDER,
+                      width=184, height=40, corner_radius=6).pack(side="left", padx=(0, 8))
+        ctk.CTkButton(row, text="Guest", command=self._do_guest,
+                      font=ctk.CTkFont(family="Courier", size=11),
+                      fg_color="transparent", hover_color=PANEL,
+                      text_color=TEXT2, border_width=1, border_color=BORDER,
+                      width=184, height=40, corner_radius=6).pack(side="left")
+
+        ctk.CTkButton(inner, text="← back", command=self._show_welcome,
+                      font=ctk.CTkFont(family="Courier", size=10),
+                      fg_color="transparent", hover_color=PANEL,
+                      text_color=TEXT2).pack(pady=(12, 0))
+
+        self.bind("<Return>", lambda e: do_signin())
+        uid_e.focus()
+
+    # =========================================================================
+    # Page 2b — Create Account
+    # =========================================================================
+
+    def _show_create(self):
+        self._clear()
+        self.unbind("<Return>")
+        self._title_bar("CREATE ACCOUNT", "STEP 1 OF 3")
+
+        outer = ctk.CTkFrame(self, fg_color=BG)
+        outer.pack(fill="both", expand=True)
+        card = ctk.CTkFrame(outer, fg_color=CARD, corner_radius=16,
+                            border_width=1, border_color=BORDER, width=560)
+        card.place(relx=0.5, rely=0.5, anchor="center")
+        card.pack_propagate(False)
+        inner = ctk.CTkFrame(card, fg_color="transparent")
+        inner.pack(padx=48, pady=32, fill="both", expand=True)
+
+        ctk.CTkLabel(inner, text="CREATE ACCOUNT",
+                     font=ctk.CTkFont(family="Courier", size=20, weight="bold"),
+                     text_color=AMBER).pack(pady=(0, 4))
+        ctk.CTkLabel(inner, text="calibration runs after — saves your personal eye baseline",
+                     font=ctk.CTkFont(family="Courier", size=10),
+                     text_color=TEXT2).pack(pady=(0, 16))
+
+        name_row = ctk.CTkFrame(inner, fg_color="transparent")
+        name_row.pack(pady=(0, 10))
+        first_e = self._entry(name_row, "First name", width=185)
+        first_e.pack(side="left", padx=(0, 8))
+        last_e  = self._entry(name_row, "Last name",  width=185)
+        last_e.pack(side="left")
+
+        uid_e   = self._entry(inner, "User ID  (letters, numbers, _ only)")
+        uid_e.pack(pady=(0, 10))
+        pw_e    = self._entry(inner, "Password  (min 6 characters)", show="●")
+        pw_e.pack(pady=(0, 10))
+        pw2_e   = self._entry(inner, "Confirm password", show="●")
+        pw2_e.pack(pady=(0, 10))
+        gmail_e = self._entry(inner, "Personal Gmail")
+        gmail_e.pack(pady=(0, 10))
+        em_e    = self._entry(inner, "Emergency email  (optional)")
+        em_e.pack(pady=(0, 4))
+
+        err = ctk.CTkLabel(inner, text="",
+                           font=ctk.CTkFont(family="Courier", size=10),
+                           text_color=RED)
+        err.pack(pady=(0, 8))
+
+        def do_create():
+            first = first_e.get().strip()
+            last  = last_e.get().strip()
+            uid   = uid_e.get().strip()
+            pw    = pw_e.get()
+            pw2   = pw2_e.get()
+            gmail = gmail_e.get().strip()
+            em    = em_e.get().strip()
+            if not all([first, last, uid, pw, pw2, gmail]):
+                err.configure(text="All fields except emergency email are required.")
+                return
+            if pw != pw2:
+                err.configure(text="Passwords do not match.")
+                return
+            error = _create_user(uid, first, last, pw, gmail, em)
+            if error:
+                err.configure(text=error)
+                return
+            user = _sign_in(uid, pw)
+            user["needs_calibration"] = True
+            self._user = user
+            self._after_auth()
+
+        self._btn(inner, "CREATE ACCOUNT & CALIBRATE", do_create)
+        ctk.CTkButton(inner, text="← back to sign in", command=self._show_signin,
+                      font=ctk.CTkFont(family="Courier", size=10),
+                      fg_color="transparent", hover_color=PANEL,
+                      text_color=TEXT2).pack()
+        first_e.focus()
+
+    # =========================================================================
+    # Guest
+    # =========================================================================
+
+    def _do_guest(self):
+        self._user = {
+            "user_id": "guest", "first_name": "Guest", "last_name": "",
+            "personal_email": "", "emergency_email": "",
+            "ear_threshold": None, "pitch_baseline": None,
+        }
+        self._after_auth()
+
+    # =========================================================================
+    # After auth — decide next screen
+    # =========================================================================
+
+    def _after_auth(self):
+        self.unbind("<Return>")
+        user = self._user
+        # If guest or no emergency email saved, show emergency contact screen
+        if user["user_id"] == "guest" or not user.get("emergency_email"):
+            self._show_emergency()
+        else:
+            state["contact_name"]  = f"{user['first_name']} {user['last_name']}"
+            state["contact_email"] = user["emergency_email"]
+            self._after_emergency()
+
+    # =========================================================================
+    # Page 3 — Emergency Contact
+    # =========================================================================
+
+    def _show_emergency(self):
+        self._clear()
+        self._title_bar("EMERGENCY CONTACT", "STEP 2 OF 3")
+        _, _, inner = self._card(520, 520)
+
+        ctk.CTkLabel(inner, text="🚨",
+                     font=ctk.CTkFont(size=52)).pack(pady=(0, 8))
+        ctk.CTkLabel(inner, text="EMERGENCY CONTACT",
+                     font=ctk.CTkFont(family="Courier", size=22, weight="bold"),
+                     text_color=AMBER).pack(pady=(0, 4))
+        ctk.CTkLabel(inner, text="If a critical alert fires, we'll notify this person.",
+                     font=ctk.CTkFont(family="Courier", size=10),
+                     text_color=TEXT2).pack(pady=(0, 24))
+
+        ctk.CTkLabel(inner, text="CONTACT NAME",
+                     font=ctk.CTkFont(family="Courier", size=9),
+                     text_color=TEXT2).pack(anchor="w")
+        name_e = self._entry(inner, "e.g. Jane Smith")
+        name_e.pack(pady=(4, 14))
+
+        ctk.CTkLabel(inner, text="CONTACT EMAIL",
+                     font=ctk.CTkFont(family="Courier", size=9),
+                     text_color=TEXT2).pack(anchor="w")
+        email_e = self._entry(inner, "e.g. jane@gmail.com")
+        email_e.pack(pady=(4, 8))
+
+        err = ctk.CTkLabel(inner, text="",
+                           font=ctk.CTkFont(family="Courier", size=10),
+                           text_color=RED)
+        err.pack(pady=(0, 12))
+
+        def confirm():
+            name  = name_e.get().strip()
+            email = email_e.get().strip()
+            if not name and not email:
+                err.configure(text="Please enter at least a name or email.")
+                return
+            state["contact_name"]  = name
+            state["contact_email"] = email
+            self._after_emergency()
+
+        def skip():
+            state["contact_name"]  = ""
+            state["contact_email"] = ""
+            self._after_emergency()
+
+        self._btn(inner, "SAVE CONTACT", confirm)
+        self._btn(inner, "Skip for now", skip, outline=True)
+
+        ctk.CTkLabel(inner, text="You can update this later in settings.",
+                     font=ctk.CTkFont(family="Courier", size=9),
+                     text_color=BORDER).pack(pady=(12, 0))
+
+        self.bind("<Return>", lambda e: confirm())
+        name_e.focus()
+
+    # =========================================================================
+    # After emergency — decide calibration or dashboard
+    # =========================================================================
+
+    def _after_emergency(self):
+        self.unbind("<Return>")
+        user = self._user
+        needs_cal = user.get("needs_calibration") or user.get("ear_threshold") is None
+        if needs_cal:
+            self._show_calibration()
+        else:
+            state["ear_threshold"]  = user["ear_threshold"]
+            state["pitch_baseline"] = user["pitch_baseline"]
+            self._show_dashboard()
+
+    # =========================================================================
+    # Page 4 — Calibration
+    # =========================================================================
+
+    def _show_calibration(self):
+        self._clear()
+        self._title_bar("PERSONAL CALIBRATION", "STEP 3 OF 3")
+
+        self._cal_step       = 0
+        self._cal_collecting = False
+        self._cal_samples    = []
+        self._cal_done       = False
+
+        # Start camera + mediapipe
+        self._start_camera()
+
+        # ── Progress dots ──────────────────────────────────────────────────────
+        prog_frame = ctk.CTkFrame(self, fg_color=BG, height=52)
+        prog_frame.pack(fill="x", padx=60, pady=(12, 0))
+
+        dot_row = ctk.CTkFrame(prog_frame, fg_color="transparent")
+        dot_row.pack(anchor="center")
+
+        self._cal_dots   = []
+        self._cal_labels = []
+        for i, step in enumerate(CAL_STEPS):
+            col = ctk.CTkFrame(dot_row, fg_color="transparent")
+            col.pack(side="left", padx=28)
+            dot = ctk.CTkLabel(col, text="●",
+                               font=ctk.CTkFont(family="Courier", size=18),
+                               text_color=BORDER)
+            dot.pack()
+            lbl = ctk.CTkLabel(col, text=step["title"],
+                               font=ctk.CTkFont(family="Courier", size=9),
+                               text_color=TEXT2)
+            lbl.pack()
+            self._cal_dots.append(dot)
+            self._cal_labels.append(lbl)
+
+        # ── Body ───────────────────────────────────────────────────────────────
+        body = ctk.CTkFrame(self, fg_color=BG)
+        body.pack(fill="both", expand=True, padx=60, pady=12)
+
+        # Camera
+        cam_frame = ctk.CTkFrame(body, fg_color=CARD, corner_radius=12,
+                                 border_width=1, border_color=BORDER)
+        cam_frame.pack(side="left", fill="both", expand=True, padx=(0, 16))
+        self._cal_canvas = ctk.CTkCanvas(cam_frame, bg="#000",
+                                         highlightthickness=0)
+        self._cal_canvas.pack(fill="both", expand=True, padx=2, pady=2)
+
+        # Instructions panel
+        right = ctk.CTkFrame(body, fg_color=CARD, corner_radius=12,
+                             border_width=1, border_color=BORDER, width=320)
+        right.pack(side="right", fill="y")
+        right.pack_propagate(False)
+
+        panel = ctk.CTkFrame(right, fg_color="transparent")
+        panel.place(relx=0.5, rely=0.4, anchor="center")
+
+        self._cal_step_lbl = ctk.CTkLabel(panel, text="STEP 1 OF 3",
+                                          font=ctk.CTkFont(family="Courier", size=10),
+                                          text_color=TEXT2)
+        self._cal_step_lbl.pack(pady=(0, 8))
+
+        self._cal_icon_lbl = ctk.CTkLabel(panel, text="👁",
+                                          font=ctk.CTkFont(size=56))
+        self._cal_icon_lbl.pack(pady=(0, 10))
+
+        self._cal_title_lbl = ctk.CTkLabel(panel, text="",
+                                           font=ctk.CTkFont(family="Courier", size=20, weight="bold"),
+                                           text_color=GREEN)
+        self._cal_title_lbl.pack(pady=(0, 8))
+
+        self._cal_instr_lbl = ctk.CTkLabel(panel, text="",
+                                           font=ctk.CTkFont(family="Courier", size=12),
+                                           text_color=TEXT, wraplength=260, justify="center")
+        self._cal_instr_lbl.pack(pady=(0, 6))
+
+        self._cal_sub_lbl = ctk.CTkLabel(panel, text="",
+                                         font=ctk.CTkFont(family="Courier", size=10),
+                                         text_color=TEXT2, wraplength=260, justify="center")
+        self._cal_sub_lbl.pack(pady=(0, 20))
+
+        self._cal_prog = ctk.CTkProgressBar(panel, width=260,
+                                            fg_color=PANEL, progress_color=AMBER)
+        self._cal_prog.set(0)
+        self._cal_prog.pack(pady=(0, 10))
+
+        self._cal_status_lbl = ctk.CTkLabel(panel, text="Position your face in the camera",
+                                            font=ctk.CTkFont(family="Courier", size=10),
+                                            text_color=TEXT2)
+        self._cal_status_lbl.pack(pady=(0, 16))
+
+        self._cal_btn = ctk.CTkButton(panel, text="START COLLECTING",
+                                      command=self._cal_on_btn,
+                                      font=ctk.CTkFont(family="Courier", size=12, weight="bold"),
+                                      fg_color=AMBER, hover_color="#E8920D",
+                                      text_color="#000", width=260, height=44, corner_radius=6)
+        self._cal_btn.pack()
+
+        self._update_cal_step_ui()
+        self._cal_camera_loop()
+
+    def _update_cal_step_ui(self):
+        step = CAL_STEPS[self._cal_step]
+        for i, (dot, lbl) in enumerate(zip(self._cal_dots, self._cal_labels)):
+            if i < self._cal_step:
+                dot.configure(text_color=GREEN)
+                lbl.configure(text_color=GREEN)
+            elif i == self._cal_step:
+                dot.configure(text_color=step["color"])
+                lbl.configure(text_color=step["color"])
+            else:
+                dot.configure(text_color=BORDER)
+                lbl.configure(text_color=TEXT2)
+
+        self._cal_step_lbl.configure(text=f"STEP {self._cal_step + 1} OF 3")
+        self._cal_icon_lbl.configure(text=step["icon"])
+        self._cal_title_lbl.configure(text=step["title"], text_color=step["color"])
+        self._cal_instr_lbl.configure(text=step["instruction"])
+        self._cal_sub_lbl.configure(text=step["sub"])
+        self._cal_prog.set(0)
+        self._cal_prog.configure(progress_color=step["color"])
+        self._cal_status_lbl.configure(text="Position your face in the camera", text_color=TEXT2)
+        self._cal_btn.configure(text="START COLLECTING", state="normal", fg_color=AMBER)
+        self._cal_collecting = False
+        self._cal_samples    = []
+
+    def _cal_on_btn(self):
+        self._cal_collecting = True
+        self._cal_btn.configure(text="COLLECTING...", state="disabled", fg_color=BORDER)
+        self._cal_status_lbl.configure(text="Hold still...",
+                                       text_color=CAL_STEPS[self._cal_step]["color"])
+
+    def _cal_camera_loop(self):
+        if self._cal_done:
+            return
+
+        ret, frame = self._cap.read() if self._cap else (False, None)
+        if ret and frame is not None:
+            frame = cv2.flip(frame, 1)
+            h, w  = frame.shape[:2]
+            rgb   = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            results = self._face_mesh.process(rgb) if self._face_mesh else None
+
+            face_detected = False
+            if results and results.multi_face_landmarks:
+                face_detected = True
+                for face_landmarks in results.multi_face_landmarks:
+                    def get_point(idx):
+                        lm = face_landmarks.landmark[idx]
+                        return (lm.x * w, lm.y * h)
+
+                    left_pts  = [get_point(i) for i in LEFT_EYE]
+                    right_pts = [get_point(i) for i in RIGHT_EYE]
+                    avg_EAR   = (calculate_EAR(left_pts) + calculate_EAR(right_pts)) / 2.0
+                    pitch     = calculate_pitch(face_landmarks, w, h)
+
+                    col_hex = CAL_STEPS[self._cal_step]["color"]
+                    col_bgr = self._hex_bgr(col_hex)
+                    for pt in left_pts + right_pts:
+                        cv2.circle(frame, (int(pt[0]), int(pt[1])), 2, col_bgr, -1)
+                    pts_l = np.array([(int(p[0]), int(p[1])) for p in left_pts], np.int32)
+                    pts_r = np.array([(int(p[0]), int(p[1])) for p in right_pts], np.int32)
+                    cv2.polylines(frame, [pts_l], True, col_bgr, 1)
+                    cv2.polylines(frame, [pts_r], True, col_bgr, 1)
+
+                    if self._cal_collecting:
+                        if self._cal_step in (0, 1):
+                            self._cal_samples.append(avg_EAR)
+                        elif self._cal_step == 2 and pitch is not None:
+                            self._cal_samples.append(pitch)
+
+                        target = CAL_STEPS[self._cal_step]["samples"]
+                        count  = len(self._cal_samples)
+                        self._cal_prog.set(count / target)
+                        if count >= target:
+                            self._cal_finish_step()
+
+            if not face_detected and self._cal_btn.cget("state") == "normal":
+                self._cal_status_lbl.configure(text="No face detected — move closer", text_color=RED)
+            elif face_detected and not self._cal_collecting:
+                self._cal_status_lbl.configure(text="Face detected ✓  press START when ready", text_color=GREEN)
+
+            # Draw to canvas
+            try:
+                cw = self._cal_canvas.winfo_width()
+                ch = self._cal_canvas.winfo_height()
+                if cw > 1 and ch > 1:
+                    frame = cv2.resize(frame, (cw, ch))
+                frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                img = Image.fromarray(frame_rgb)
+                self._photo = ImageTk.PhotoImage(image=img)
+                self._cal_canvas.delete("all")
+                self._cal_canvas.create_image(0, 0, anchor="nw", image=self._photo)
+            except Exception:
+                pass
+
+        if not self._cal_done:
+            self.after(33, self._cal_camera_loop)
+
+    def _cal_finish_step(self):
+        self._cal_collecting = False
+        samples = self._cal_samples[:]
+        step    = CAL_STEPS[self._cal_step]
+
+        self._cal_status_lbl.configure(text=f"✓ {step['title']} captured!", text_color=GREEN)
+        self._cal_prog.set(1)
+
+        if self._cal_step == 0:
+            self._cal_open_avg = float(np.mean(samples))
+        elif self._cal_step == 1:
+            self._cal_closed_avg = float(np.mean(samples))
+            self._ear_threshold  = (self._cal_open_avg + self._cal_closed_avg) / 2.0
+        elif self._cal_step == 2:
+            self._pitch_baseline = float(np.mean(samples))
+
+        if self._cal_step < 2:
+            self._cal_step += 1
+            self.after(800, self._update_cal_step_ui)
+        else:
+            self.after(800, self._cal_finish_all)
+
+    def _cal_finish_all(self):
+        self._cal_done = True
+
+        # All dots green
+        for dot, lbl in zip(self._cal_dots, self._cal_labels):
+            dot.configure(text_color=GREEN)
+            lbl.configure(text_color=GREEN)
+
+        self._cal_btn.configure(text="CALIBRATION COMPLETE ✓",
+                                fg_color=GREEN, text_color="#000", state="disabled")
+        self._cal_title_lbl.configure(text="ALL DONE!", text_color=GREEN)
+        self._cal_instr_lbl.configure(text="Your personal profile has been saved.")
+        self._cal_sub_lbl.configure(text="Starting Noctura...")
+
+        # Save to DB
+        user = self._user
+        if user and user["user_id"] != "guest":
+            save_calibration(user["user_id"], self._ear_threshold, self._pitch_baseline)
+
+        state["ear_threshold"]  = self._ear_threshold
+        state["pitch_baseline"] = self._pitch_baseline
+
+        self.after(1500, self._show_dashboard)
+
+    # =========================================================================
+    # Page 5 — Main Dashboard
+    # =========================================================================
+
+    def _show_dashboard(self):
+        self._clear()
+
+        # Start detection thread
+        if not self._detection_started:
+            self._detection_started = True
+            threading.Thread(target=run_detection, daemon=True).start()
+
+        # Make sure camera is running for the feed
+        if not self._cam_active:
+            self._start_camera()
+
+        # ── Title bar ──────────────────────────────────────────────────────────
+        bar = ctk.CTkFrame(self, fg_color=PANEL, height=36,
+                           corner_radius=0, border_width=1, border_color=BORDER)
+        bar.pack(fill="x", side="top")
+        bar.pack_propagate(False)
+
+        ctk.CTkLabel(bar, text="Noctura",
+                     font=ctk.CTkFont(family="Courier", size=14, weight="bold"),
+                     text_color=AMBER).pack(side="left", padx=16)
+        ctk.CTkLabel(bar, text="DRIVER MONITORING SYSTEM · ACTIVE SESSION",
+                     font=ctk.CTkFont(size=11), text_color=TEXT2).pack(side="left", padx=8)
+
+        self._status_label = ctk.CTkLabel(bar, text="● MONITORING",
+                                          font=ctk.CTkFont(family="Courier", size=11),
+                                          text_color=GREEN)
+        self._status_label.pack(side="right", padx=16)
+
+        # ── Body ───────────────────────────────────────────────────────────────
         body = ctk.CTkFrame(self, fg_color=BG, corner_radius=0)
         body.pack(fill="both", expand=True)
- 
-        # Left stats panel (fixed width)
-        left = ctk.CTkFrame(
-            body,
-            fg_color=PANEL,
-            width=220,
-            corner_radius=0,
-            border_width=1,
-            border_color=BORDER
-        )
+
+        # Left panel
+        left = ctk.CTkFrame(body, fg_color=PANEL, width=220, corner_radius=0,
+                            border_width=1, border_color=BORDER)
         left.pack(side="left", fill="y")
-        left.pack_propagate(False)   # keep fixed width regardless of content
+        left.pack_propagate(False)
         self._build_left_panel(left)
- 
-        # Center webcam area (fills remaining width)
-        center = ctk.CTkFrame(body, fg_color="#000000", corner_radius=0)
+
+        # Center feed
+        center = ctk.CTkFrame(body, fg_color="#000", corner_radius=0)
         center.pack(side="left", fill="both", expand=True)
         self._build_center(center)
- 
+
+        self._dashboard_loop()
+
     def _build_left_panel(self, parent):
-        """
-        Left sidebar content:
-          - Large EAR number (changes color based on threshold)
-          - Current alert stage
-          - Threshold reference (Stage 1 / Stage 2 / SMS)
-          - Stop Alarm button pinned to the bottom
-        """
         pad = {"padx": 16, "pady": (12, 4)}
- 
-        # EAR value display
-        ctk.CTkLabel(
-            parent, text="EAR VALUE",
-            font=ctk.CTkFont(family="Courier", size=9),
-            text_color=TEXT2
-        ).pack(anchor="w", **pad)
- 
-        # Large number — color changes green → amber → red as eyes close
-        self.ear_label = ctk.CTkLabel(
-            parent,
-            text="0.00",
-            font=ctk.CTkFont(family="Courier", size=40, weight="bold"),
-            text_color=AMBER
-        )
+
+        ctk.CTkLabel(parent, text="EAR VALUE",
+                     font=ctk.CTkFont(family="Courier", size=9),
+                     text_color=TEXT2).pack(anchor="w", **pad)
+
+        self.ear_label = ctk.CTkLabel(parent, text="0.00",
+                                      font=ctk.CTkFont(family="Courier", size=40, weight="bold"),
+                                      text_color=AMBER)
         self.ear_label.pack(anchor="w", padx=16, pady=(0, 8))
- 
-        # Visual divider
-        ctk.CTkFrame(parent, fg_color=BORDER, height=1, corner_radius=0).pack(
-            fill="x", padx=16, pady=4)
- 
-        # Alert stage display
-        ctk.CTkLabel(
-            parent, text="ALERT STAGE",
-            font=ctk.CTkFont(family="Courier", size=9),
-            text_color=TEXT2
-        ).pack(anchor="w", **pad)
- 
-        # Stage label — updated by _sync_state() based on state["alert_stage"]
-        self.stage_label = ctk.CTkLabel(
-            parent,
-            text="STAGE 0",
-            font=ctk.CTkFont(family="Courier", size=18, weight="bold"),
-            text_color=GREEN
-        )
+
+        ctk.CTkFrame(parent, fg_color=BORDER, height=1, corner_radius=0).pack(fill="x", padx=16, pady=4)
+
+        ctk.CTkLabel(parent, text="ALERT STAGE",
+                     font=ctk.CTkFont(family="Courier", size=9),
+                     text_color=TEXT2).pack(anchor="w", **pad)
+
+        self.stage_label = ctk.CTkLabel(parent, text="STAGE 0",
+                                        font=ctk.CTkFont(family="Courier", size=18, weight="bold"),
+                                        text_color=GREEN)
         self.stage_label.pack(anchor="w", padx=16, pady=(0, 8))
- 
-        # Visual divider
-        ctk.CTkFrame(parent, fg_color=BORDER, height=1, corner_radius=0).pack(
-            fill="x", padx=16, pady=4)
- 
-        # Threshold reference rows
-        # Static info labels so the driver knows what each stage triggers.
-        # Actual threshold logic lives in core.py.
-        for stage, description, color in [
+
+        ctk.CTkFrame(parent, fg_color=BORDER, height=1, corner_radius=0).pack(fill="x", padx=16, pady=4)
+
+        for stage, desc, color in [
             ("Stage 1", "3s — audio alarm",  AMBER),
             ("Stage 2", "5s — loud alarm",   "#FF8C00"),
-            ("SMS",     "8s — Twilio send",  RED),
+            ("SMS",     "8s — email alert",  RED),
         ]:
             row = ctk.CTkFrame(parent, fg_color="transparent", corner_radius=0)
             row.pack(fill="x", padx=16, pady=2)
- 
-            ctk.CTkLabel(
-                row, text=stage,
-                font=ctk.CTkFont(family="Courier", size=11, weight="bold"),
-                text_color=color, width=60, anchor="w"
-            ).pack(side="left")
- 
-            ctk.CTkLabel(
-                row, text=description,
-                font=ctk.CTkFont(size=10),
-                text_color=TEXT2
-            ).pack(side="left", padx=4)
- 
-        # Spacer — pushes stop button to the bottom of the panel
+            ctk.CTkLabel(row, text=stage,
+                         font=ctk.CTkFont(family="Courier", size=11, weight="bold"),
+                         text_color=color, width=60, anchor="w").pack(side="left")
+            ctk.CTkLabel(row, text=desc,
+                         font=ctk.CTkFont(size=10), text_color=TEXT2).pack(side="left", padx=4)
+
         ctk.CTkFrame(parent, fg_color="transparent").pack(fill="y", expand=True)
- 
-        # ── Stop Alarm button ─────────────────────────────────────────────────
-        # Pinned to bottom. On click calls _stop_alarm() which writes back
-        # to state so alert.py knows to silence the sound.
-        ctk.CTkFrame(parent, fg_color=BORDER, height=1, corner_radius=0).pack(
-            fill="x", padx=0, pady=0)
- 
-        self.stop_btn = ctk.CTkButton(
-            parent,
-            text="STOP ALARM",
-            font=ctk.CTkFont(family="Courier", size=13, weight="bold"),
-            fg_color=RED,
-            hover_color="#CC2222",
-            text_color="#FFFFFF",
-            corner_radius=0,
-            height=48,
-            command=self._stop_alarm
-        )
-        self.stop_btn.pack(fill="x", side="bottom")
- 
+        ctk.CTkFrame(parent, fg_color=BORDER, height=1, corner_radius=0).pack(fill="x")
+
+        ctk.CTkButton(parent, text="STOP ALARM",
+                      command=self._stop_alarm,
+                      font=ctk.CTkFont(family="Courier", size=13, weight="bold"),
+                      fg_color=RED, hover_color="#CC2222",
+                      text_color="#FFF", corner_radius=0, height=48
+                      ).pack(fill="x", side="bottom")
+
     def _build_center(self, parent):
-        """
-        Center webcam area:
-          - Canvas where each OpenCV frame is drawn every 33ms
-          - Alert overlay label that floats on top when fatigue detected
-        """
-        # Canvas fills the entire center column
-        self.canvas = ctk.CTkCanvas(
-            parent,
-            bg="#000000",
-            highlightthickness=0   # removes default white Tkinter border
-        )
-        self.canvas.pack(fill="both", expand=True)
- 
-        # Overlay warning text — empty normally, shown on Stage 2+ alert
-        self.alert_overlay = ctk.CTkLabel(
-            parent,
-            text="",
-            font=ctk.CTkFont(family="Courier", size=16, weight="bold"),
-            text_color=RED,
-            fg_color="transparent"
-        )
+        self.dash_canvas = ctk.CTkCanvas(parent, bg="#000", highlightthickness=0)
+        self.dash_canvas.pack(fill="both", expand=True)
+
+        self.alert_overlay = ctk.CTkLabel(parent, text="",
+                                          font=ctk.CTkFont(family="Courier", size=16, weight="bold"),
+                                          text_color=RED, fg_color="transparent")
         self.alert_overlay.place(relx=0.5, rely=0.05, anchor="n")
 
-# Update loop — runs every 33ms (~30fps)
- 
-    def _update(self):
-        """
-        Main application loop. Schedules itself every 33ms using after().
-        Each tick: grab webcam frame + sync UI to latest state values.
-        """
-        self._read_webcam()
-        self._sync_state()
-        self.after(33, self._update)   # reschedule — this is what keeps it looping
- 
-    def _read_webcam(self):
-        """
-        Captures one frame from the webcam and draws it onto the canvas.
- 
-        Frame conversion pipeline:
-          cv2.VideoCapture → numpy BGR array
-            → flip horizontal (mirror effect for driver-facing camera)
-            → resize to canvas dimensions
-            → BGR to RGB conversion (OpenCV and PIL use different channel order)
-            → PIL Image
-            → ImageTk.PhotoImage
-            → canvas.create_image()
- 
-        Note: self._photo must be stored as an instance variable (self._photo).
-        If stored as a local variable, Python garbage collects it before
-        Tkinter finishes rendering, resulting in a blank canvas.
-        """
+    def _dashboard_loop(self):
+        # Draw frame from detection thread
         frame = state.get("frame")
-        if frame is None:
-            return
+        if frame is not None:
+            try:
+                cw = self.dash_canvas.winfo_width()
+                ch = self.dash_canvas.winfo_height()
+                if cw > 1 and ch > 1:
+                    frame = cv2.resize(frame, (cw, ch))
+                frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                img = Image.fromarray(frame_rgb)
+                self._photo = ImageTk.PhotoImage(image=img)
+                self.dash_canvas.delete("all")
+                self.dash_canvas.create_image(0, 0, anchor="nw", image=self._photo)
+            except Exception:
+                pass
 
-        canvas_w = self.canvas.winfo_width()
-        canvas_h = self.canvas.winfo_height()
-        if canvas_w > 1 and canvas_h > 1:
-            frame = cv2.resize(frame, (canvas_w, canvas_h))
-
-        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        img = Image.fromarray(frame_rgb)
-        self._photo = ImageTk.PhotoImage(image=img)
-        self.canvas.delete("all")
-        self.canvas.create_image(0, 0, anchor="nw", image=self._photo)
- 
-    def _sync_state(self):
-        """
-        Reads shared state dict and updates all UI labels to reflect
-        the latest detection values from core.py and detector.py.
- 
-        Reads from state:
-          "ear"          → float, set by core.py each frame
-          "alert_stage"  → int 0-3, set by core.py based on PERCLOS
-          "yawn_count"   → int, set by detector.py (used in future panels)
-        """
+        # Sync state
         ear   = state.get("ear", 0.0)
         stage = state.get("alert_stage", 0)
- 
-        # EAR display
+
         self.ear_label.configure(text=f"{ear:.2f}")
- 
-        # Color encodes urgency — green is safe, red is critical
         if ear < 0.20:
             self.ear_label.configure(text_color=RED)
         elif ear < 0.25:
             self.ear_label.configure(text_color=AMBER)
         else:
             self.ear_label.configure(text_color=GREEN)
- 
-        # ── Stage display ─────────────────────────────────────────────────────
+
         stage_colors = {0: GREEN, 1: AMBER, 2: "#FF8C00", 3: RED}
         stage_texts  = {0: "STAGE 0", 1: "STAGE 1", 2: "STAGE 2", 3: "SMS SENT"}
- 
-        self.stage_label.configure(
-            text=stage_texts.get(stage, "STAGE 0"),
-            text_color=stage_colors.get(stage, GREEN)
-        )
- 
-        # Status bar + video overlay
+        self.stage_label.configure(text=stage_texts.get(stage, "STAGE 0"),
+                                   text_color=stage_colors.get(stage, GREEN))
+
         if stage >= 2:
-            self.status_label.configure(text="⚠ FATIGUE DETECTED", text_color=RED)
+            self._status_label.configure(text="⚠ FATIGUE DETECTED", text_color=RED)
             self.alert_overlay.configure(text="⚠  DROWSINESS DETECTED — PULL OVER")
         elif stage == 1:
-            self.status_label.configure(text="● STAGE 1 WARNING", text_color=AMBER)
+            self._status_label.configure(text="● STAGE 1 WARNING", text_color=AMBER)
             self.alert_overlay.configure(text="")
         else:
-            self.status_label.configure(text="● MONITORING", text_color=GREEN)
+            self._status_label.configure(text="● MONITORING", text_color=GREEN)
             self.alert_overlay.configure(text="")
- 
-    # Button handlers
- 
+
+        self.after(33, self._dashboard_loop)
+
     def _stop_alarm(self):
-        """
-        Handles STOP ALARM button press.
- 
-        Writes to shared state:
-          "alarm_silenced" → True  : alert.py watches this to kill audio
-          "alert_stage"    → 0     : resets detection stage to normal
- 
-        Then resets all UI elements back to safe/monitoring state.
-        """
         state["alarm_silenced"] = True
         state["alert_stage"]    = 0
- 
-        self.status_label.configure(text="● SILENCED", text_color=TEXT2)
+        self._status_label.configure(text="● SILENCED", text_color=TEXT2)
         self.stage_label.configure(text="STAGE 0", text_color=GREEN)
         self.alert_overlay.configure(text="")
- 
-    # Cleanup
- 
-    def on_close(self):
-        """
-        Called when the window close button is pressed.
-        Always release the webcam before destroying the window —
-        otherwise the camera stays locked at the OS level.
-        """
+
+    # =========================================================================
+    # Camera management
+    # =========================================================================
+
+    def _start_camera(self):
+        if self._cam_active:
+            return
+        self._cap = cv2.VideoCapture(0, cv2.CAP_AVFOUNDATION)
+        self._face_mesh = mp.solutions.face_mesh.FaceMesh(
+            max_num_faces=1, refine_landmarks=True,
+            min_detection_confidence=0.5, min_tracking_confidence=0.5
+        )
+        self._cam_active = True
+
+    def _stop_camera(self):
+        self._cam_active = False
+        if self._cap:
+            self._cap.release()
+            self._cap = None
+        if self._face_mesh:
+            self._face_mesh.close()
+            self._face_mesh = None
+
+    # =========================================================================
+    # Utilities
+    # =========================================================================
+
+    @staticmethod
+    def _hex_bgr(hex_color):
+        h = hex_color.lstrip("#")
+        r, g, b = int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
+        return (b, g, r)
+
+    def _on_close(self):
+        self._stop_camera()
         self.destroy()
- 
-# Entry point
- 
-if __name__ == "__main__":
-    app = AlertEyeApp()
-    app.protocol("WM_DELETE_WINDOW", app.on_close)   # wire close button to cleanup
-    app.mainloop()

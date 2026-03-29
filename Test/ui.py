@@ -1,5 +1,5 @@
 # =============================================================================
-# ui.py — Noctura unified application window
+# ui.py — Noctua unified application window
 # =============================================================================
 
 import os
@@ -46,7 +46,7 @@ class AppWindow(ctk.CTk):
 
     def __init__(self):
         super().__init__()
-        self.title("Noctura")
+        self.title("Noctua")
         self.configure(fg_color=BG)
         self.resizable(True, True)
         self.after(100, lambda: self.state("zoomed"))
@@ -85,7 +85,7 @@ class AppWindow(ctk.CTk):
                            corner_radius=0, border_width=1, border_color=BORDER)
         bar.pack(fill="x", side="top")
         bar.pack_propagate(False)
-        ctk.CTkLabel(bar, text="NOCTURA",
+        ctk.CTkLabel(bar, text="NOCTUA",
                      font=ctk.CTkFont(family="Inter", size=13, weight="bold"),
                      text_color=AMBER).pack(side="left", padx=16)
         if subtitle:
@@ -166,7 +166,7 @@ class AppWindow(ctk.CTk):
             self._play_welcome_video()
         else:
             self._welcome_canvas.create_text(
-                400, 300, text="NOCTURA", fill=AMBER, font=("Inter", 48, "bold"))
+                400, 300, text="NOCTUA", fill=AMBER, font=("Inter", 48, "bold"))
 
         ctk.CTkButton(
             outer, text="GET STARTED →",
@@ -208,24 +208,41 @@ class AppWindow(ctk.CTk):
     # =========================================================================
     # Page 2 — Sign In
     # =========================================================================
-
     def _show_signin(self):
         self._clear()
-        _, _, inner = self._card(500, 560)
+        self._title_bar("SIGN IN", "STEP 1 OF 4")
+
+        outer = ctk.CTkFrame(self, fg_color=BG)
+        outer.pack(fill="both", expand=True)
+
+        card = ctk.CTkFrame(outer, fg_color=CARD, corner_radius=16,
+                            border_width=1, border_color=BORDER,
+                            width=500, height=420)
+        card.place(relx=0.5, rely=0.5, anchor="center")
+        card.pack_propagate(False)
+
+        # Back button top left of card
+        ctk.CTkButton(card, text="← back", command=self._show_welcome,
+                    font=ctk.CTkFont(family="Inter", size=10),
+                    fg_color="transparent", hover_color=PANEL,
+                    text_color=TEXT2, width=60, height=24).place(x=12, y=12)
+
+        inner = ctk.CTkFrame(card, fg_color="transparent")
+        inner.place(relx=0.5, rely=0.53, anchor="center")
 
         ctk.CTkLabel(inner, text="SIGN IN",
-                     font=ctk.CTkFont(family="MuseoModerno", size=22, weight="bold"),
-                     text_color=AMBER).pack(pady=(0, 4))
+                    font=ctk.CTkFont(family="MuseoModerno", size=22, weight="bold"),
+                    text_color=AMBER).pack(pady=(0, 20))
 
         uid_e = self._entry(inner, "User ID")
-        uid_e.pack(pady=(0, 10))
+        uid_e.pack(pady=(0, 8))
         pw_e  = self._entry(inner, "Password", show="●")
         pw_e.pack(pady=(0, 4))
 
         err = ctk.CTkLabel(inner, text="",
-                           font=ctk.CTkFont(family="Inter", size=10),
-                           text_color=RED)
-        err.pack(pady=(0, 10))
+                        font=ctk.CTkFont(family="Inter", size=10),
+                        text_color=RED)
+        err.pack(pady=(0, 8))
 
         def do_signin():
             user = _sign_in(uid_e.get().strip(), pw_e.get())
@@ -238,25 +255,20 @@ class AppWindow(ctk.CTk):
 
         self._btn(inner, "SIGN IN", do_signin)
         ctk.CTkFrame(inner, fg_color=BORDER, height=1, width=380,
-                     corner_radius=0).pack(pady=10)
+                    corner_radius=0).pack(pady=10)
 
         row = ctk.CTkFrame(inner, fg_color="transparent")
         row.pack()
         ctk.CTkButton(row, text="Create Account", command=self._show_create,
-                      font=ctk.CTkFont(family="MuseoModerno", size=11),
-                      fg_color="transparent", hover_color=PANEL,
-                      text_color=TEXT2, border_width=1, border_color=BORDER,
-                      width=184, height=40, corner_radius=6).pack(side="left", padx=(0, 8))
+                    font=ctk.CTkFont(family="MuseoModerno", size=11),
+                    fg_color="transparent", hover_color=PANEL,
+                    text_color=TEXT2, border_width=1, border_color=BORDER,
+                    width=184, height=40, corner_radius=6).pack(side="left", padx=(0, 8))
         ctk.CTkButton(row, text="Guest", command=self._do_guest,
-                      font=ctk.CTkFont(family="MuseoModerno", size=11),
-                      fg_color="transparent", hover_color=PANEL,
-                      text_color=TEXT2, border_width=1, border_color=BORDER,
-                      width=184, height=40, corner_radius=6).pack(side="left")
-
-        ctk.CTkButton(inner, text="← back", command=self._show_welcome,
-                      font=ctk.CTkFont(family="MuseoModerno", size=10),
-                      fg_color="transparent", hover_color=PANEL,
-                      text_color=TEXT2).pack(pady=(12, 0))
+                    font=ctk.CTkFont(family="MuseoModerno", size=11),
+                    fg_color="transparent", hover_color=PANEL,
+                    text_color=TEXT2, border_width=1, border_color=BORDER,
+                    width=184, height=40, corner_radius=6).pack(side="left")
 
         self.bind("<Return>", lambda e: do_signin())
         uid_e.focus()
@@ -574,19 +586,28 @@ class AppWindow(ctk.CTk):
         dot_row.pack(anchor="center")
         self._cal_dots   = []
         self._cal_labels = []
+        self._cal_lines = []
         for i, step in enumerate(CAL_STEPS):
             col = ctk.CTkFrame(dot_row, fg_color="transparent")
-            col.pack(side="left", padx=28)
+            col.pack(side="left", padx=0)
+
             dot = ctk.CTkLabel(col, text="●",
-                               font=ctk.CTkFont(family="Inter", size=18),
-                               text_color=BORDER)
+                            font=ctk.CTkFont(family="Inter", size=18),
+                            text_color=BORDER)
             dot.pack()
             lbl = ctk.CTkLabel(col, text=step["title"],
-                               font=ctk.CTkFont(family="Inter", size=9),
-                               text_color=TEXT2)
+                            font=ctk.CTkFont(family="Inter", size=9),
+                            text_color=TEXT2)
             lbl.pack()
             self._cal_dots.append(dot)
             self._cal_labels.append(lbl)
+
+            # Add connector line between dots
+            if i < len(CAL_STEPS) - 1:
+                line = ctk.CTkFrame(dot_row, fg_color=BORDER,
+                                    width=60, height=2, corner_radius=0)
+                line.pack(side="left", pady=(0, 18))
+                self._cal_lines.append(line)
 
         body = ctk.CTkFrame(self, fg_color=BG)
         body.pack(fill="both", expand=True, padx=60, pady=12)
@@ -649,6 +670,8 @@ class AppWindow(ctk.CTk):
                 dot.configure(text_color=step["color"]); lbl.configure(text_color=step["color"])
             else:
                 dot.configure(text_color=BORDER); lbl.configure(text_color=TEXT2)
+        for i, line in enumerate(self._cal_lines):
+            line.configure(fg_color=GREEN if i < self._cal_step else BORDER)
         self._cal_step_lbl.configure(text=f"STEP {self._cal_step + 1} OF 3")
         icons = ["icons8-eye-100.png", "icons8-closed-eye-100.png", "icons8-up-arrow-100.png"]
         img_path = os.path.join(os.path.dirname(__file__), icons[self._cal_step])
@@ -767,7 +790,7 @@ class AppWindow(ctk.CTk):
                                 fg_color=GREEN, text_color="#000", state="disabled")
         self._cal_title_lbl.configure(text="ALL DONE!", text_color=GREEN)
         self._cal_instr_lbl.configure(text="Your personal profile has been saved.")
-        self._cal_sub_lbl.configure(text="Starting Noctura...")
+        self._cal_sub_lbl.configure(text="Starting Noctua...")
         user = self._user
         if user and user["user_id"] != "guest":
             save_calibration(user["user_id"], self._ear_threshold, self._pitch_baseline)
@@ -796,7 +819,7 @@ class AppWindow(ctk.CTk):
         bar.pack(fill="x", side="top")
         bar.pack_propagate(False)
 
-        ctk.CTkLabel(bar, text="NOCTURA",
+        ctk.CTkLabel(bar, text="NOCTUA",
                      font=ctk.CTkFont(family="Inter", size=13, weight="bold"),
                      text_color=AMBER).pack(side="left", padx=16)
         ctk.CTkLabel(bar, text="DRIVER MONITORING SYSTEM · ACTIVE SESSION",
@@ -954,6 +977,12 @@ class AppWindow(ctk.CTk):
                       font=("Inter", 22, "bold"), fill=color)
         c.create_text(cx, cy + 16, text="EAR",
                       font=("Inter", 9), fill=TEXT2)
+        c.create_text(cx - r - 6, cy + r + 8, text="0.0",
+              font=("Inter", 7), fill=TEXT2, anchor="e")
+        c.create_text(cx + r + 6, cy + r + 8, text="0.4",
+                    font=("Inter", 7), fill=TEXT2, anchor="w")
+        c.create_text(cx, cy + r + 14, text="open ←→ closed",
+                    font=("Inter", 7), fill=TEXT3)
 
     # ── Right panel ───────────────────────────────────────────────────────────
 
@@ -1028,7 +1057,7 @@ class AppWindow(ctk.CTk):
         ctk.CTkLabel(header, text="●",
                      font=ctk.CTkFont(family="Inter", size=8),
                      text_color=GREEN).pack(side="left")
-        ctk.CTkLabel(header, text="  NOCTURA AI · SESSION INSIGHT",
+        ctk.CTkLabel(header, text="  NOCTUA AI · SESSION INSIGHT",
                      font=ctk.CTkFont(family="Inter", size=8),
                      text_color=GREEN).pack(side="left")
 
@@ -1057,6 +1086,12 @@ class AppWindow(ctk.CTk):
                       font=("Inter", 20, "bold"), fill=color)
         c.create_text(cx, cy + 6, text="PERCLOS",
                       font=("Inter", 8), fill=TEXT2)
+        c.create_text(cx - r - 4, cy + 4, text="0%",
+              font=("Inter", 7), fill=TEXT2)
+        c.create_text(cx + r + 4, cy + 4, text="100%",
+                    font=("Inter", 7), fill=TEXT2)
+        c.create_text(cx, cy + 18, text="danger > 30%",
+                    font=("Inter", 7), fill=TEXT3)
 
     def _on_slider(self, val):
         self._thresh_val_lbl.configure(text=f"{val/100:.2f}")
@@ -1298,6 +1333,12 @@ class AppWindow(ctk.CTk):
                       fg_color=BORDER, hover_color=BORDER2,
                       text_color=TEXT, corner_radius=6,
                       width=160, height=34).pack(side="right", padx=16, pady=9)
+        ctk.CTkButton(bottom, text="NEW SESSION",
+              command=self._restart_session,
+              font=ctk.CTkFont(family="Inter", size=12, weight="bold"),
+              fg_color=AMBER, hover_color=AMBER2,
+              text_color="#000", corner_radius=6,
+              width=160, height=34).pack(side="left", padx=16, pady=9)
 
         def show_session_tab():
             session_btn.configure(fg_color=AMBER, text_color="#000")
@@ -1335,6 +1376,13 @@ class AppWindow(ctk.CTk):
         threading.Thread(target=self._render_report_figure,
                          args=(session_id, user_name, user_id, "session"),
                          daemon=True).start()
+    def _restart_session(self):
+        state["end_session"]  = False
+        state["session_id"]   = None
+        state["alert_stage"]  = 0
+        state["alarm_silenced"] = False
+        self._detection_started = False
+        self._show_dashboard()
 
     def _render_report_figure(self, session_id, user_name, user_id, tab):
         try:
@@ -1514,9 +1562,6 @@ class AppWindow(ctk.CTk):
         if user_id == "guest":
             uid_e.configure(state="disabled")
 
-        ctk.CTkFrame(inner, fg_color=BORDER, height=1,
-                     corner_radius=0).pack(fill="x", pady=12)
-        
         ctk.CTkFrame(inner, fg_color=BORDER, height=1,
                      corner_radius=0).pack(fill="x", pady=12)
 

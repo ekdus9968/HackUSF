@@ -37,6 +37,14 @@ TEXT2   = "#5A7090"
 TEXT3   = "#384860"
 CARD    = "#0F1428"
 
+# Fonts
+FONT_TITLE  = ("MuseoModerno", 20)
+FONT_HEADER = ("MuseoModerno", 16)
+
+FONT_BODY   = ("Inter", 12)          # or Exo 2
+FONT_SMALL  = ("Inter", 10)
+FONT_MONO   = ("JetBrains Mono", 11)
+
 CAL_STEPS = [
     {"title": "OPEN EYES",     "instruction": "Look straight at the camera with your eyes fully open.", "sub": "Hold still — we're measuring your natural eye openness.", "color": GREEN, "icon": "👁",  "samples": 60},
     {"title": "CLOSE EYES",    "instruction": "Now slowly close your eyes completely.",                  "sub": "Keep your head still — this sets your closed-eye baseline.", "color": AMBER, "icon": "😑", "samples": 60},
@@ -75,6 +83,7 @@ class AppWindow(ctk.CTk):
         self._session_start      = None
 
         self._show_welcome()
+        self._dashboard_active = False
 
     # =========================================================================
     # Shared helpers
@@ -708,9 +717,11 @@ class AppWindow(ctk.CTk):
         center.pack(side="left", fill="both", expand=True)
         self._build_center(center)
 
+        self._dashboard_active = True
         self._dashboard_loop()
 
     def _end_session(self):
+        self._dashboard_active = False
         state["end_session"] = True
         self.after(500, self._wait_for_session_save)
 
@@ -904,6 +915,8 @@ class AppWindow(ctk.CTk):
     # =========================================================================
 
     def _dashboard_loop(self):
+        if not self._dashboard_active:
+            return
         if self._session_start:
             elapsed = int(time.time() - self._session_start)
             h = elapsed // 3600
@@ -1066,12 +1079,12 @@ class AppWindow(ctk.CTk):
     
     def _launch_matplotlib_report(self, session_id, user_name, user_id):
         try:
-                from report import show_session_report, show_history_report
-                show_session_report(session_id, user_name)
-                if user_id != "guest":
-                    show_history_report(user_id, user_name)
+            from report import show_session_report, show_history_report
+            self.after(0, lambda: show_session_report(session_id, user_name))
+            if user_id != "guest":
+                self.after(100, lambda: show_history_report(user_id, user_name))
         except Exception as e:
-                print(f"[Report] Error: {e}")
+            print(f"[Report] Error: {e}")
 
     # =========================================================================
     # Camera management

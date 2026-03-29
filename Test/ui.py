@@ -873,9 +873,9 @@ class AppWindow(ctk.CTk):
         self._status_label.pack(side="right", padx=16)
 
         self._session_label = ctk.CTkLabel(bar, text="00:00:00",
-                                           font=ctk.CTkFont(family="Inter", size=11),
-                                           text_color=TEXT2)
-        self._session_label.pack(side="right", padx=16)
+                                           font=ctk.CTkFont(family="Inter", size=16, weight="bold"),
+                                           text_color=AMBER)
+        self._session_label.pack(side="right", padx=20)
 
         body = ctk.CTkFrame(self, fg_color=BG, corner_radius=0)
         body.pack(fill="both", expand=True)

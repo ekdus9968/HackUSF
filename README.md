@@ -27,6 +27,8 @@ Noctua monitors driver alertness in real-time using a webcam. It detects eye clo
 | Fatigue Signals | Blink rate, PERCLOS, brow furrow — terminal output |
 | Email Alert | Gmail SMTP — sends on CRITICAL with contact info |
 | UI | CustomTkinter dashboard with EAR ring, PERCLOS arc, alert log |
+| Weather | WeatherAPI used for weather conditions on greeting |
+| Traffic | TomTom for traffic conditions announced on greeting |
 
 ---
 
@@ -60,6 +62,8 @@ noctua/
 ├── warning.wav         # Stage 2 alert sound
 ├── welcome.mp4         # Welcome screen video (optional)
 └── users.db            # SQLite database (auto-created)
+│
+├── weather_greeting    # Weather and traffic report 
 ```
 
 ---
@@ -234,3 +238,5 @@ sessions (
 | Graphs | Matplotlib |
 | Audio playback | macOS `afplay` |
 | Email | Gmail SMTP (smtplib) |
+| Daily Report | Tomtom Weatherapi |
+

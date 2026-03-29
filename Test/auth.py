@@ -126,16 +126,15 @@ def save_driver_profile(user_id: str, profile: dict):
 
 
 def _sign_in(user_id, pw):
-    """Returns user row dict or None."""
     con = sqlite3.connect(DB_PATH)
     row = con.execute(
         "SELECT * FROM users WHERE user_id=? AND pw_hash=?",
         (user_id, _hash(pw))
     ).fetchone()
+    cols = [r[1] for r in con.execute("PRAGMA table_info(users)").fetchall()]
     con.close()
     if not row:
         return None
-    cols = [r[1] for r in sqlite3.connect(DB_PATH).execute("PRAGMA table_info(users)").fetchall()]
     return dict(zip(cols, row))
 
 
@@ -222,62 +221,3 @@ PROFILE_QUESTIONS = [
         "values":  ["none", "light", "moderate", "heavy"],
     },
 ]
-
-
-# ── OpenCV UI (legacy — kept for non-GUI usage) ───────────────────
-def get_emergency_contact():
-    """Emergency contact input screen — ENTER to confirm, ESC to skip"""
-    name  = ""
-    email = ""
-    field = 0
-
-    W, H = 640, 400
-
-    while True:
-        canvas = np.zeros((H, W, 3), dtype=np.uint8)
-
-        cv2.putText(canvas, "Emergency Contact Setup",
-                    (80, 50), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 255, 255), 2)
-        cv2.line(canvas, (60, 65), (580, 65), (100, 100, 100), 1)
-
-        name_color = (0, 255, 255) if field == 0 else (180, 180, 180)
-        cv2.putText(canvas, "Name:", (60, 130),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (200, 200, 200), 1)
-        cv2.rectangle(canvas, (60, 145), (580, 185), name_color, 2)
-        cv2.putText(canvas, name + ("|" if field == 0 else ""),
-                    (72, 175), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
-
-        email_color = (0, 255, 255) if field == 1 else (180, 180, 180)
-        cv2.putText(canvas, "Email:", (60, 230),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (200, 200, 200), 1)
-        cv2.rectangle(canvas, (60, 245), (580, 285), email_color, 2)
-        cv2.putText(canvas, email + ("|" if field == 1 else ""),
-                    (72, 275), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
-
-        cv2.putText(canvas, "ENTER: next / confirm    ESC: skip",
-                    (100, 350), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (120, 120, 120), 1)
-
-        cv2.imshow("Setup", canvas)
-        key = cv2.waitKey(20) & 0xFF
-
-        if key == 27:
-            break
-        elif key == 13:
-            if field == 0 and name:
-                field = 1
-            elif field == 1:
-                break
-        elif key == 8:
-            if field == 0:
-                name = name[:-1]
-            else:
-                email = email[:-1]
-        elif 32 <= key <= 126:
-            ch = chr(key)
-            if field == 0:
-                name += ch
-            else:
-                email += ch
-
-    cv2.destroyWindow("Setup")
-    return name.strip(), email.strip()

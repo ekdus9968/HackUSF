@@ -341,7 +341,7 @@ class AppWindow(ctk.CTk):
             e.bind("<Tab>", lambda ev, n=next_e: (n.focus(), "break"))
             e.bind("<Return>", lambda ev: do_create())
 
-        self._btn(inner, "CREATE ACCOUNT & CALIBRATE", do_create)
+        self._btn(inner, "NEXT →", do_create)
         ctk.CTkButton(inner, text="← back to sign in", command=self._show_signin,
                       font=ctk.CTkFont(family="Courier", size=10),
                       fg_color="transparent", hover_color=PANEL,
@@ -357,6 +357,122 @@ class AppWindow(ctk.CTk):
             "ear_threshold": None, "pitch_baseline": None,
         }
         self._after_auth()
+# =========================================================================
+# Page 2c — Driver Profile (new users only)
+# =========================================================================
+
+    def _show_driver_profile(self):
+        self._clear()
+        self.unbind("<Return>")
+        self._title_bar("DRIVER PROFILE", "STEP 2 OF 4")
+
+        from auth import PROFILE_QUESTIONS
+
+        outer = ctk.CTkFrame(self, fg_color=BG)
+        outer.pack(fill="both", expand=True)
+
+        # Scrollable card
+        card = ctk.CTkScrollableFrame(outer, fg_color=CARD, corner_radius=16,
+                                    border_width=1, border_color=BORDER,
+                                    width=580, height=560,
+                                    scrollbar_button_color=BORDER,
+                                    scrollbar_button_hover_color=BORDER2)
+        card.place(relx=0.5, rely=0.5, anchor="center")
+
+        ctk.CTkLabel(card, text="DRIVER PROFILE",
+                    font=ctk.CTkFont(family="Courier", size=20, weight="bold"),
+                    text_color=AMBER).pack(pady=(16, 4))
+        ctk.CTkLabel(card, text="Help us personalize your experience — takes 30 seconds.",
+                    font=ctk.CTkFont(family="Courier", size=10),
+                    text_color=TEXT2).pack(pady=(0, 20))
+
+        answers = {}  # key → selected value
+
+        for q in PROFILE_QUESTIONS:
+            # Question label
+            ctk.CTkLabel(card, text=q["label"],
+                        font=ctk.CTkFont(family="Courier", size=11, weight="bold"),
+                        text_color=TEXT, anchor="w").pack(fill="x", padx=24, pady=(8, 4))
+
+            if q["type"] == "choice":
+                var = ctk.StringVar(value="")
+                answers[q["key"]] = var
+                btn_row = ctk.CTkFrame(card, fg_color="transparent")
+                btn_row.pack(fill="x", padx=24, pady=(0, 8))
+                btn_refs = []
+                for label, value in zip(q["options"], q["values"]):
+                    btn = ctk.CTkButton(btn_row, text=label,
+                                        font=ctk.CTkFont(family="Courier", size=10),
+                                        fg_color="transparent", hover_color=PANEL,
+                                        text_color=TEXT2, border_width=1, border_color=BORDER,
+                                        height=34, corner_radius=6)
+                    btn.pack(side="left", padx=(0, 6), pady=2)
+                    btn_refs.append((btn, value))
+
+                def make_cmd(v, sv, refs):
+                    def cmd():
+                        sv.set(v)
+                        for b, bv in refs:
+                            b.configure(
+                                fg_color=AMBER if bv == v else "transparent",
+                                text_color="#000" if bv == v else TEXT2
+                            )
+                    return cmd
+
+                for btn, value in btn_refs:
+                    btn.configure(command=make_cmd(value, var, btn_refs))
+
+            elif q["type"] == "text":
+                entry = self._entry(card, q.get("placeholder", ""), width=532)
+                entry.pack(padx=24, pady=(0, 8))
+                answers[q["key"]] = entry
+
+            ctk.CTkFrame(card, fg_color=BORDER, height=1,
+                        corner_radius=0).pack(fill="x", padx=24, pady=4)
+
+        # Buttons
+        btn_frame = ctk.CTkFrame(card, fg_color="transparent")
+        btn_frame.pack(pady=16)
+
+        def save_and_continue():
+            profile = {}
+            for key, widget in answers.items():
+                if isinstance(widget, ctk.StringVar):
+                    val = widget.get()
+                    if val:
+                        profile[key] = val
+                else:
+                    val = widget.get().strip()
+                    if val:
+                        profile[key] = val
+            # Save profile to DB
+            user = self._user
+            if user and user["user_id"] != "guest":
+                from auth import save_driver_profile
+                save_driver_profile(user["user_id"], profile)
+            self._after_driver_profile()
+
+        ctk.CTkButton(btn_frame, text="SAVE & CONTINUE →",
+                    command=save_and_continue,
+                    font=ctk.CTkFont(family="Courier", size=12, weight="bold"),
+                    fg_color=AMBER, hover_color=AMBER2,
+                    text_color="#000", width=260, height=42, corner_radius=6).pack(side="left", padx=8)
+
+        ctk.CTkButton(btn_frame, text="Skip",
+                    command=self._after_driver_profile,
+                    font=ctk.CTkFont(family="Courier", size=11),
+                    fg_color="transparent", hover_color=PANEL,
+                    text_color=TEXT2, border_width=1, border_color=BORDER,
+                    width=100, height=42, corner_radius=6).pack(side="left")
+
+    def _after_driver_profile(self):
+        user = self._user
+        if user["user_id"] == "guest" or not user.get("emergency_email"):
+            self._show_emergency()
+        else:
+            state["contact_name"]  = f"{user['first_name']} {user['last_name']}"
+            state["contact_email"] = user["emergency_email"]
+            self._after_emergency()
 
     # =========================================================================
     # Page 3 — Emergency Contact
@@ -366,7 +482,10 @@ class AppWindow(ctk.CTk):
         self.unbind("<Return>")
         user = self._user
         state["user"] = user
-        if user["user_id"] == "guest" or not user.get("emergency_email"):
+        # New accounts go through driver profile first
+        if user.get("needs_calibration"):
+            self._show_driver_profile()
+        elif user["user_id"] == "guest" or not user.get("emergency_email"):
             self._show_emergency()
         else:
             state["contact_name"]  = f"{user['first_name']} {user['last_name']}"
@@ -445,7 +564,7 @@ class AppWindow(ctk.CTk):
 
     def _show_calibration(self):
         self._clear()
-        self._title_bar("PERSONAL CALIBRATION", "STEP 3 OF 3")
+        self._title_bar("PERSONAL CALIBRATION", "STEP 4 OF 4")
         self._cal_step       = 0
         self._cal_collecting = False
         self._cal_samples    = []

@@ -47,7 +47,7 @@ def get_emergency_contact():
                  font=ctk.CTkFont(family="Courier", size=11),
                  text_color=TEXT2).pack(side="left", padx=8)
 
-    ctk.CTkLabel(bar, text="STEP 2 OF 3",
+    ctk.CTkLabel(bar, text="STEP 3 OF 4",
                  font=ctk.CTkFont(family="Courier", size=10),
                  text_color=TEXT2).pack(side="right", padx=16)
 

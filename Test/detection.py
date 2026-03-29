@@ -75,6 +75,11 @@ waiting_level  = 0
 # Prevent duplicate CRITICAL voice alert
 spoke_critical = False
 
+# Driving time reminder
+drive_start_t     = time.time()
+DRIVE_REMINDER_S  = 30        # 30 s for demo (swap to 7200 for 2-hr real use)
+last_reminder_t   = drive_start_t
+
 with mp_face_mesh.FaceMesh(
     max_num_faces=1,
     refine_landmarks=True,
@@ -234,6 +239,15 @@ with mp_face_mesh.FaceMesh(
 
                     if alert_level >= 1:
                         draw_stop_button(frame)
+                    # ── Driving time reminder ─────────────────────────────────────
+                    if now - last_reminder_t >= DRIVE_REMINDER_S:
+                        elapsed_min = int((now - drive_start_t) / 60)
+                        if elapsed_min < 1:
+                            duration_str = "a little while"
+                        else:
+                            duration_str = f"{elapsed_min} minute{'s' if elapsed_min != 1 else ''}"
+                        speak(f"Hey, you've been driving for {duration_str}. Consider taking a short break to stay safe.")
+                        last_reminder_t = now
 
         cv2.imshow("Tiredness Tracker", frame)
         if cv2.waitKey(1) & 0xFF == ord('q'):

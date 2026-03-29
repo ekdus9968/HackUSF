@@ -178,7 +178,7 @@ def _screen_signin():
                 return "signin", user
             else:
                 error = "Incorrect user ID or password."
-        elif key == 8:
+        elif key in (8, 127):
             fields[focus] = fields[focus][:-1]
         elif key in (ord('c'), ord('C')):
             cv2.destroyWindow("Smart Car")
@@ -252,7 +252,7 @@ def _screen_create():
                         user = _sign_in(uid, pw)
                         user["needs_calibration"] = True
                         return user
-        elif key == 8:
+        elif key in (8, 127):
             fields[focus] = fields[focus][:-1]
         elif 32 <= key <= 126:
             fields[focus] += chr(key)

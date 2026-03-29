@@ -5,6 +5,7 @@ Calibration data stored per user account.
 """
 import sqlite3
 import hashlib
+import sys
 import re
 import os
 import cv2
@@ -270,15 +271,15 @@ def run_auth():
         action, user = _screen_signin()
 
         if action == "signin":
-            print(f"[Auth] Signed in: {user['user_id']} ({user['first_name']} {user['last_name']})")
+            print(f"[Auth] Signed in: {user['user_id']} ({user['first_name']} {user['last_name']})", file=sys.stderr)
             return user
         elif action == "guest":
-            print("[Auth] Continuing as guest.")
+            print("[Auth] Continuing as guest.", file=sys.stderr)
             return user
         elif action == "create":
             new_user = _screen_create()
             if new_user:
-                print(f"[Auth] Account created: {new_user['user_id']}")
+                print(f"[Auth] Account created: {new_user['user_id']}", file=sys.stderr)
                 return new_user
             # else: back to sign in
         else:

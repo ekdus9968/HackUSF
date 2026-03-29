@@ -9,30 +9,10 @@ from emergency import get_emergency_contact
 from sms import send_critical_alert
 from voice import start_voice_listener, consume_stop
 from alert import speak
+from chat import handle_chat
+from auth import run_auth, save_calibration
 
 mp_face_mesh = mp.solutions.face_mesh
-
-LEFT_EYE  = [362, 385, 387, 263, 373, 380]
-RIGHT_EYE = [33, 160, 158, 133, 153, 144]
-
-alert_colors = {
-    0: (0, 255, 0),
-    1: (0, 255, 255),
-    2: (0, 165, 255),
-    3: (0, 0, 255),
-}
-alert_labels = {
-    0: "ALERT: OK",
-    1: "ALERT: WARNING",
-    2: "ALERT: DANGER",
-    3: "ALERT: CRITICAL",
-}
-
-def calculate_EAR(eye_landmarks):
-    A = np.linalg.norm(np.array(eye_landmarks[1]) - np.array(eye_landmarks[5]))
-    B = np.linalg.norm(np.array(eye_landmarks[2]) - np.array(eye_landmarks[4]))
-    C = np.linalg.norm(np.array(eye_landmarks[0]) - np.array(eye_landmarks[3]))
-    return (A + B) / (2.0 * C)
 
 # ── STOP button ───────────────────────────────────────────────────
 BTN = {"x": 20, "y": 210, "w": 110, "h": 42}
@@ -54,12 +34,20 @@ def is_btn_clicked(x, y):
     return (BTN["x"] <= x <= BTN["x"] + BTN["w"] and
             BTN["y"] <= y <= BTN["y"] + BTN["h"])
 
-# ── Emergency contact ─────────────────────────────────────────────
-contact_name, contact_email = get_emergency_contact()
-if contact_name or contact_email:
-    print(f"Emergency contact saved: {contact_name}  {contact_email}")
+# Authentication
+user = run_auth()
+if user is None:
+    exit()
 
-start_voice_listener()
+# Pre-fill emergency contact from account, or ask manually if guest
+if user["user_id"] == "guest" or not user.get("emergency_email"):
+    contact_name, contact_email = get_emergency_contact()
+else:
+    contact_name  = f"{user['first_name']} {user['last_name']}"
+    contact_email = user["emergency_email"]
+    print(f"Emergency contact loaded from account: {contact_name}  {contact_email}")
+
+start_voice_listener(chat_handler=handle_chat)
 
 cap = cv2.VideoCapture(0)
 
@@ -73,17 +61,19 @@ cv2.namedWindow("Tiredness Tracker")
 cv2.setMouseCallback("Tiredness Tracker", on_mouse)
 
 # ── State variables ───────────────────────────────────────────────
-closed_start    = None
-alert_level     = 0
-prev_level      = 0
+closed_start   = None
+alert_level    = 0
+prev_level     = 0
 
-BEEP_INTERVAL   = 2.0
-last_sound_t    = 0.0
+BEEP_INTERVAL  = 2.0
+last_sound_t   = 0.0
 
-waiting_stop    = False
-waiting_level   = 0
+# Waiting mode: eyes opened but STOP not yet pressed
+waiting_stop   = False
+waiting_level  = 0
 
-spoke_critical  = False   # CRITICAL 음성 중복 방지
+# Prevent duplicate CRITICAL voice alert
+spoke_critical = False
 
 with mp_face_mesh.FaceMesh(
     max_num_faces=1,
@@ -92,8 +82,17 @@ with mp_face_mesh.FaceMesh(
     min_tracking_confidence=0.5
 ) as face_mesh:
 
-    EAR_THRESHOLD, PITCH_BASELINE = calibrate(face_mesh, cap)
-    cv2.destroyWindow("Calibration")
+    # Use saved calibration or run new one
+    if user.get("needs_calibration") or user["ear_threshold"] is None:
+        EAR_THRESHOLD, PITCH_BASELINE = calibrate(face_mesh, cap)
+        cv2.destroyWindow("Calibration")
+        if user["user_id"] != "guest":
+            save_calibration(user["user_id"], EAR_THRESHOLD, PITCH_BASELINE)
+            print(f"[Auth] Calibration saved for '{user['user_id']}'.")
+    else:
+        EAR_THRESHOLD  = user["ear_threshold"]
+        PITCH_BASELINE = user["pitch_baseline"]
+        print(f"[Auth] Calibration loaded — EAR: {EAR_THRESHOLD:.3f}, Pitch: {PITCH_BASELINE:.2f}")
     NOD_THRESHOLD = PITCH_BASELINE + NOD_PITCH_OFFSET
 
     while cap.isOpened():
@@ -123,7 +122,7 @@ with mp_face_mesh.FaceMesh(
 
                 danger    = eye_closed or head_down
 
-                # ── STOP (버튼 / 음성) ────────────────────────────
+                # ── STOP: button click or voice command ───────────
                 voice_stop = consume_stop()
                 if clicked[0] or voice_stop:
                     btn_hit = voice_stop or is_btn_clicked(*click_pos[0])
@@ -137,7 +136,7 @@ with mp_face_mesh.FaceMesh(
                         spoke_critical = False
                     clicked[0] = False
 
-                # ── 대기 모드 (눈 떴지만 STOP 안 누름) ───────────
+                # ── Waiting mode: eyes open, waiting for STOP ─────
                 if waiting_stop:
                     if now - last_sound_t >= BEEP_INTERVAL:
                         if waiting_level == 1:
@@ -160,7 +159,7 @@ with mp_face_mesh.FaceMesh(
                     draw_stop_button(frame)
 
                 else:
-                    # ── 타이머 로직 ───────────────────────────────
+                    # ── Alert timer logic ─────────────────────────
                     if danger:
                         if closed_start is None:
                             closed_start   = now
@@ -173,7 +172,7 @@ with mp_face_mesh.FaceMesh(
                         else:                     alert_level = 0
                     else:
                         if alert_level in (1, 2):
-                            # 눈 뜸 → 대기 모드
+                            # Eyes open before CRITICAL -> enter waiting mode
                             waiting_stop  = True
                             waiting_level = alert_level
                             closed_start  = None
@@ -183,7 +182,7 @@ with mp_face_mesh.FaceMesh(
                             closed_start = None
                             alert_level  = 0
 
-                    # ── 레벨 전환 시 소리 / 음성 / 이메일 ─────────
+                    # ── Sound / voice / email on level change ─────
                     if alert_level != prev_level:
                         if alert_level == 1:
                             play_beep()
@@ -199,13 +198,13 @@ with mp_face_mesh.FaceMesh(
                             spoke_critical = False
                         prev_level = alert_level
 
-                    # CRITICAL 음성 (한 번만)
+                    # CRITICAL voice alert (once only)
                     if alert_level == 3 and not spoke_critical:
                         label = "eyes closed" if eye_closed else "head down"
                         speak(f"Warning! You have been driving with your {label}. Please pull over immediately.")
                         spoke_critical = True
 
-                    # ALERT_1/2 유지 중 반복 재생
+                    # Repeat sound while alert level persists
                     if alert_level == 1 and now - last_sound_t >= BEEP_INTERVAL:
                         play_beep()
                         last_sound_t = now
@@ -213,7 +212,7 @@ with mp_face_mesh.FaceMesh(
                         play_warning()
                         last_sound_t = now
 
-                    # ── 눈 윤곽선 ─────────────────────────────────
+                    # ── Draw eye outlines ─────────────────────────
                     color = alert_colors[alert_level]
                     for pt in left_pts + right_pts:
                         cv2.circle(frame, (int(pt[0]), int(pt[1])), 2, color, -1)
@@ -222,14 +221,14 @@ with mp_face_mesh.FaceMesh(
                     cv2.polylines(frame, [pts_l], isClosed=True, color=color, thickness=1)
                     cv2.polylines(frame, [pts_r], isClosed=True, color=color, thickness=1)
 
-                    # ── HUD ───────────────────────────────────────
+                    # ── HUD overlay ───────────────────────────────
                     cv2.putText(frame, f"EAR: {avg_EAR:.2f}", (30, 50),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.8, color, 2)
                     cv2.putText(frame, alert_labels[alert_level], (30, 90),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.9, color, 2)
                     if danger and closed_start:
                         duration = now - closed_start
-                        label = "Eyes closed" if eye_closed else "Head down"
+                        label    = "Eyes closed" if eye_closed else "Head down"
                         cv2.putText(frame, f"{label}: {duration:.1f}s", (30, 130),
                                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2)
 

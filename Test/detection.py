@@ -16,6 +16,7 @@ import cv2
 import mediapipe as mp
 import numpy as np
 from alert import speak
+from voice import start_voice_listener, consume_stop
 import time
 
 from calibration import calibrate
@@ -39,6 +40,7 @@ def calculate_EAR(eye_landmarks):
 
 
 def run():
+    start_voice_listener()
     # ── Emergency contact setup ───────────────────────────────────────────────
     contact_name  = state.get("contact_name", "")
     contact_email = state.get("contact_email", "")
@@ -83,6 +85,10 @@ def run():
             ret, frame = cap.read()
             if not ret:
                 break
+            # Check for voice stop command every frame
+            if consume_stop():
+                state["alarm_silenced"] = True
+                state["alert_stage"] = 0
 
             h, w    = frame.shape[:2]
             rgb     = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)

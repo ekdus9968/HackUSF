@@ -85,15 +85,15 @@ class AppWindow(ctk.CTk):
         bar.pack(fill="x", side="top")
         bar.pack_propagate(False)
         ctk.CTkLabel(bar, text="NOCTURA",
-                     font=ctk.CTkFont(family="Courier", size=13, weight="bold"),
+                     font=ctk.CTkFont(family="Inter", size=13, weight="bold"),
                      text_color=AMBER).pack(side="left", padx=16)
         if subtitle:
             ctk.CTkLabel(bar, text=subtitle,
-                         font=ctk.CTkFont(family="Courier", size=11),
+                         font=ctk.CTkFont(family="Inter", size=11),
                          text_color=TEXT2).pack(side="left", padx=8)
         if step:
             ctk.CTkLabel(bar, text=step,
-                         font=ctk.CTkFont(family="Courier", size=10),
+                         font=ctk.CTkFont(family="Inter", size=10),
                          text_color=TEXT2).pack(side="right", padx=16)
         return bar
 
@@ -115,14 +115,14 @@ class AppWindow(ctk.CTk):
 
     def _entry(self, parent, placeholder, show="", width=380):
         return ctk.CTkEntry(parent, placeholder_text=placeholder,
-                            font=ctk.CTkFont(family="Courier", size=13),
+                            font=ctk.CTkFont(family="Inter", size=13),
                             fg_color=PANEL, border_color=BORDER, border_width=1,
                             text_color=TEXT, placeholder_text_color=TEXT2,
                             width=width, height=42, corner_radius=6, show=show)
 
     def _btn(self, parent, text, cmd, fg=AMBER, tc="#000", outline=False, width=380, pady=6):
         b = ctk.CTkButton(parent, text=text, command=cmd,
-                          font=ctk.CTkFont(family="Courier", size=12, weight="bold"),
+                          font=ctk.CTkFont(family="Inter", size=12, weight="bold"),
                           fg_color="transparent" if outline else fg,
                           hover_color=PANEL if outline else AMBER2,
                           text_color=TEXT2 if outline else tc,
@@ -165,7 +165,7 @@ class AppWindow(ctk.CTk):
             self._play_welcome_video()
         else:
             self._welcome_canvas.create_text(
-                400, 300, text="NOCTURA", fill=AMBER, font=("Courier", 48, "bold"))
+                400, 300, text="NOCTURA", fill=AMBER, font=("Inter", 48, "bold"))
 
         ctk.CTkButton(
             outer, text="GET STARTED →",
@@ -210,7 +210,6 @@ class AppWindow(ctk.CTk):
 
     def _show_signin(self):
         self._clear()
-        self._title_bar("SIGN IN", "STEP 1 OF 4")
         _, _, inner = self._card(500, 560)
 
         ctk.CTkLabel(inner, text="SIGN IN",
@@ -223,7 +222,7 @@ class AppWindow(ctk.CTk):
         pw_e.pack(pady=(0, 4))
 
         err = ctk.CTkLabel(inner, text="",
-                           font=ctk.CTkFont(family="Courier", size=10),
+                           font=ctk.CTkFont(family="Inter", size=10),
                            text_color=RED)
         err.pack(pady=(0, 10))
 
@@ -268,7 +267,6 @@ class AppWindow(ctk.CTk):
     def _show_create(self):
         self._clear()
         self.unbind("<Return>")
-        self._title_bar("CREATE ACCOUNT", "STEP 1 OF 4")
 
         outer = ctk.CTkFrame(self, fg_color=BG)
         outer.pack(fill="both", expand=True)
@@ -302,7 +300,7 @@ class AppWindow(ctk.CTk):
         em_e.pack(pady=(0, 4))
 
         err = ctk.CTkLabel(inner, text="",
-                           font=ctk.CTkFont(family="Courier", size=10),
+                           font=ctk.CTkFont(family="Inter", size=10),
                            text_color=RED)
         err.pack(pady=(0, 6))
 
@@ -337,7 +335,7 @@ class AppWindow(ctk.CTk):
 
         self._btn(inner, "NEXT →", do_create)
         ctk.CTkButton(inner, text="← back to sign in", command=self._show_signin,
-                      font=ctk.CTkFont(family="Courier", size=10),
+                      font=ctk.CTkFont(family="Inter", size=10),
                       fg_color="transparent", hover_color=BORDER,
                       text_color=TEXT2).pack()
 
@@ -359,7 +357,6 @@ class AppWindow(ctk.CTk):
     def _show_driver_profile(self):
         self._clear()
         self.unbind("<Return>")
-        self._title_bar("DRIVER PROFILE", "STEP 2 OF 4")
 
         outer = ctk.CTkFrame(self, fg_color=BG)
         outer.pack(fill="both", expand=True)
@@ -377,17 +374,17 @@ class AppWindow(ctk.CTk):
         card.bind_all("<MouseWheel>", _on_scroll)
 
         ctk.CTkLabel(card, text="DRIVER PROFILE",
-                     font=ctk.CTkFont(family="Courier", size=20, weight="bold"),
+                     font=ctk.CTkFont(family="Inter", size=20, weight="bold"),
                      text_color=AMBER).pack(pady=(16, 4))
         ctk.CTkLabel(card, text="Help us personalize your experience — takes 30 seconds.",
-                     font=ctk.CTkFont(family="Courier", size=10),
+                     font=ctk.CTkFont(family="Inter", size=10),
                      text_color=TEXT2).pack(pady=(0, 16))
 
         answers = {}
 
         for q in PROFILE_QUESTIONS:
             ctk.CTkLabel(card, text=q["label"],
-                         font=ctk.CTkFont(family="Courier", size=11, weight="bold"),
+                         font=ctk.CTkFont(family="Inter", size=11, weight="bold"),
                          text_color=TEXT, anchor="w").pack(fill="x", padx=24, pady=(12, 4))
 
             if q["type"] == "choice":
@@ -412,7 +409,7 @@ class AppWindow(ctk.CTk):
 
                 for label, value in zip(q["options"], q["values"]):
                     btn = ctk.CTkButton(btn_row, text=label,
-                                        font=ctk.CTkFont(family="Courier", size=10),
+                                        font=ctk.CTkFont(family="Inter", size=10),
                                         fg_color="transparent", hover_color=BORDER2,
                                         text_color=TEXT2, border_width=1, border_color=BORDER,
                                         height=34, corner_radius=6)
@@ -452,13 +449,13 @@ class AppWindow(ctk.CTk):
 
         ctk.CTkButton(btn_frame, text="SAVE & CONTINUE →",
                       command=save_and_continue,
-                      font=ctk.CTkFont(family="Courier", size=12, weight="bold"),
+                      font=ctk.CTkFont(family="Inter", size=12, weight="bold"),
                       fg_color=AMBER, hover_color=AMBER2,
                       text_color="#000", width=260, height=42, corner_radius=6).pack(side="left", padx=8)
 
         ctk.CTkButton(btn_frame, text="Skip",
                       command=lambda: (self.unbind("<MouseWheel>"), self._after_driver_profile()),
-                      font=ctk.CTkFont(family="Courier", size=11),
+                      font=ctk.CTkFont(family="Inter", size=11),
                       fg_color="transparent", hover_color=PANEL,
                       text_color=TEXT2, border_width=1, border_color=BORDER,
                       width=100, height=42, corner_radius=6).pack(side="left")
@@ -491,7 +488,6 @@ class AppWindow(ctk.CTk):
 
     def _show_emergency(self):
         self._clear()
-        self._title_bar("EMERGENCY CONTACT", "STEP 3 OF 4")
         _, _, inner = self._card(520, 520)
 
         ctk.CTkLabel(inner, text="🚨",
@@ -500,7 +496,7 @@ class AppWindow(ctk.CTk):
                      font=ctk.CTkFont(family="MuseoModerno", size=22, weight="bold"),
                      text_color=AMBER).pack(pady=(0, 4))
         ctk.CTkLabel(inner, text="If a critical alert fires, we'll notify this person.",
-                     font=ctk.CTkFont(family="Courier", size=10),
+                     font=ctk.CTkFont(family="Inter", size=10),
                      text_color=TEXT2).pack(pady=(0, 24))
 
         ctk.CTkLabel(inner, text="CONTACT NAME",
@@ -516,7 +512,7 @@ class AppWindow(ctk.CTk):
         email_e.pack(pady=(4, 8))
 
         err = ctk.CTkLabel(inner, text="",
-                           font=ctk.CTkFont(family="Courier", size=10),
+                           font=ctk.CTkFont(family="Inter", size=10),
                            text_color=RED)
         err.pack(pady=(0, 12))
 
@@ -538,7 +534,7 @@ class AppWindow(ctk.CTk):
         self._btn(inner, "SAVE CONTACT", confirm)
         self._btn(inner, "Skip for now", skip, outline=True)
         ctk.CTkLabel(inner, text="You can update this later in settings.",
-                     font=ctk.CTkFont(family="Courier", size=9),
+                     font=ctk.CTkFont(family="Inter", size=9),
                      text_color=BORDER).pack(pady=(12, 0))
 
         self.bind("<Return>", lambda e: confirm())
@@ -561,7 +557,6 @@ class AppWindow(ctk.CTk):
 
     def _show_calibration(self):
         self._clear()
-        self._title_bar("PERSONAL CALIBRATION", "STEP 4 OF 4")
         self._cal_step       = 0
         self._cal_collecting = False
         self._cal_samples    = []
@@ -578,11 +573,11 @@ class AppWindow(ctk.CTk):
             col = ctk.CTkFrame(dot_row, fg_color="transparent")
             col.pack(side="left", padx=28)
             dot = ctk.CTkLabel(col, text="●",
-                               font=ctk.CTkFont(family="Courier", size=18),
+                               font=ctk.CTkFont(family="Inter", size=18),
                                text_color=BORDER)
             dot.pack()
             lbl = ctk.CTkLabel(col, text=step["title"],
-                               font=ctk.CTkFont(family="Courier", size=9),
+                               font=ctk.CTkFont(family="Inter", size=9),
                                text_color=TEXT2)
             lbl.pack()
             self._cal_dots.append(dot)
@@ -606,22 +601,22 @@ class AppWindow(ctk.CTk):
         panel.place(relx=0.5, rely=0.4, anchor="center")
 
         self._cal_step_lbl = ctk.CTkLabel(panel, text="STEP 1 OF 3",
-                                          font=ctk.CTkFont(family="Courier", size=10),
+                                          font=ctk.CTkFont(family="Inter", size=10),
                                           text_color=TEXT2)
         self._cal_step_lbl.pack(pady=(0, 8))
         self._cal_icon_lbl = ctk.CTkLabel(panel, text="👁",
                                           font=ctk.CTkFont(size=56))
         self._cal_icon_lbl.pack(pady=(0, 10))
         self._cal_title_lbl = ctk.CTkLabel(panel, text="",
-                                           font=ctk.CTkFont(family="Courier", size=20, weight="bold"),
+                                           font=ctk.CTkFont(family="Inter", size=20, weight="bold"),
                                            text_color=GREEN)
         self._cal_title_lbl.pack(pady=(0, 8))
         self._cal_instr_lbl = ctk.CTkLabel(panel, text="",
-                                           font=ctk.CTkFont(family="Courier", size=12),
+                                           font=ctk.CTkFont(family="Inter", size=12),
                                            text_color=TEXT, wraplength=260, justify="center")
         self._cal_instr_lbl.pack(pady=(0, 6))
         self._cal_sub_lbl = ctk.CTkLabel(panel, text="",
-                                         font=ctk.CTkFont(family="Courier", size=10),
+                                         font=ctk.CTkFont(family="Inter", size=10),
                                          text_color=TEXT2, wraplength=260, justify="center")
         self._cal_sub_lbl.pack(pady=(0, 20))
         self._cal_prog = ctk.CTkProgressBar(panel, width=260,
@@ -629,12 +624,12 @@ class AppWindow(ctk.CTk):
         self._cal_prog.set(0)
         self._cal_prog.pack(pady=(0, 10))
         self._cal_status_lbl = ctk.CTkLabel(panel, text="Position your face in the camera",
-                                            font=ctk.CTkFont(family="Courier", size=10),
+                                            font=ctk.CTkFont(family="Inter", size=10),
                                             text_color=TEXT2)
         self._cal_status_lbl.pack(pady=(0, 16))
         self._cal_btn = ctk.CTkButton(panel, text="START COLLECTING",
                                       command=self._cal_on_btn,
-                                      font=ctk.CTkFont(family="Courier", size=12, weight="bold"),
+                                      font=ctk.CTkFont(family="Inter", size=12, weight="bold"),
                                       fg_color=AMBER, hover_color=AMBER2,
                                       text_color="#000", width=260, height=44, corner_radius=6)
         self._cal_btn.pack()
@@ -782,7 +777,7 @@ class AppWindow(ctk.CTk):
         bar.pack_propagate(False)
 
         ctk.CTkLabel(bar, text="NOCTURA",
-                     font=ctk.CTkFont(family="Courier", size=13, weight="bold"),
+                     font=ctk.CTkFont(family="Inter", size=13, weight="bold"),
                      text_color=AMBER).pack(side="left", padx=16)
         ctk.CTkLabel(bar, text="DRIVER MONITORING SYSTEM · ACTIVE SESSION",
                      font=ctk.CTkFont(size=11), text_color=TEXT2).pack(side="left", padx=8)
@@ -796,7 +791,7 @@ class AppWindow(ctk.CTk):
         self._badge_btn = ctk.CTkButton(
             bar, text=initials,
             command=self._open_profile_modal,
-            font=ctk.CTkFont(family="Courier", size=13, weight="bold"),
+            font=ctk.CTkFont(family="Inter", size=13, weight="bold"),
             fg_color=CYAN, hover_color="#3A6FBA",
             text_color="#FFF", width=38, height=38, corner_radius=19
         )
@@ -816,18 +811,18 @@ class AppWindow(ctk.CTk):
 
         ctk.CTkButton(bar, text="END SESSION",
                       command=self._end_session,
-                      font=ctk.CTkFont(family="Courier", size=11, weight="bold"),
+                      font=ctk.CTkFont(family="Inter", size=11, weight="bold"),
                       fg_color="transparent", hover_color=PANEL,
                       text_color=TEXT2, border_width=1, border_color=BORDER,
                       width=110, height=30, corner_radius=4).pack(side="right", padx=4)
 
         self._status_label = ctk.CTkLabel(bar, text="● MONITORING",
-                                          font=ctk.CTkFont(family="Courier", size=11),
+                                          font=ctk.CTkFont(family="Inter", size=11),
                                           text_color=GREEN)
         self._status_label.pack(side="right", padx=16)
 
         self._session_label = ctk.CTkLabel(bar, text="00:00:00",
-                                           font=ctk.CTkFont(family="Courier", size=11),
+                                           font=ctk.CTkFont(family="Inter", size=11),
                                            text_color=TEXT2)
         self._session_label.pack(side="right", padx=16)
 
@@ -872,7 +867,7 @@ class AppWindow(ctk.CTk):
         pad = {"padx": 16, "pady": (10, 2)}
 
         ctk.CTkLabel(parent, text="EAR VALUE",
-                     font=ctk.CTkFont(family="Courier", size=9),
+                     font=ctk.CTkFont(family="Inter", size=9),
                      text_color=TEXT2).pack(anchor="w", padx=16, pady=(14, 0))
 
         self._ear_canvas = ctk.CTkCanvas(parent, width=130, height=130,
@@ -884,11 +879,11 @@ class AppWindow(ctk.CTk):
                      corner_radius=0).pack(fill="x", padx=16, pady=6)
 
         ctk.CTkLabel(parent, text="ALERT STAGE",
-                     font=ctk.CTkFont(family="Courier", size=9),
+                     font=ctk.CTkFont(family="Inter", size=9),
                      text_color=TEXT2).pack(anchor="w", **pad)
 
         self.stage_label = ctk.CTkLabel(parent, text="STAGE 0",
-                                        font=ctk.CTkFont(family="Courier", size=18, weight="bold"),
+                                        font=ctk.CTkFont(family="Inter", size=18, weight="bold"),
                                         text_color=GREEN)
         self.stage_label.pack(anchor="w", padx=16, pady=(0, 8))
 
@@ -904,16 +899,16 @@ class AppWindow(ctk.CTk):
             row.pack(fill="x", padx=12, pady=1)
             ctk.CTkFrame(row, fg_color=color, width=3, corner_radius=0).pack(side="left", fill="y")
             ctk.CTkLabel(row, text=stage,
-                         font=ctk.CTkFont(family="Courier", size=10, weight="bold"),
+                         font=ctk.CTkFont(family="Inter", size=10, weight="bold"),
                          text_color=color, width=56, anchor="w").pack(side="left", padx=6, pady=6)
             ctk.CTkLabel(row, text=desc,
-                         font=ctk.CTkFont(family="Courier", size=9),
+                         font=ctk.CTkFont(family="Inter", size=9),
                          text_color=TEXT2).pack(side="left")
 
         ctk.CTkButton(
             parent, text="STOP ALARM",
             command=self._stop_alarm,
-            font=ctk.CTkFont(family="Courier", size=12, weight="bold"),
+            font=ctk.CTkFont(family="Inter", size=12, weight="bold"),
             fg_color=RED, hover_color="#CC2222",
             text_color="#FFFFFF", corner_radius=0, height=48
         ).pack(fill="x", side="bottom")
@@ -936,9 +931,9 @@ class AppWindow(ctk.CTk):
                          start=90, extent=-extent,
                          outline=color, width=8, style="arc")
         c.create_text(cx, cy - 8, text=f"{ear_val:.2f}",
-                      font=("Courier", 22, "bold"), fill=color)
+                      font=("Inter", 22, "bold"), fill=color)
         c.create_text(cx, cy + 16, text="EAR",
-                      font=("Courier", 9), fill=TEXT2)
+                      font=("Inter", 9), fill=TEXT2)
 
     # ── Right panel ───────────────────────────────────────────────────────────
 
@@ -946,7 +941,7 @@ class AppWindow(ctk.CTk):
         pad = {"padx": 14, "pady": (10, 2)}
 
         ctk.CTkLabel(parent, text="PERCLOS · 3s WINDOW",
-                     font=ctk.CTkFont(family="Courier", size=9),
+                     font=ctk.CTkFont(family="Inter", size=9),
                      text_color=TEXT2).pack(anchor="w", padx=14, pady=(14, 0))
 
         self._perclos_canvas = ctk.CTkCanvas(parent, width=220, height=120,
@@ -958,7 +953,7 @@ class AppWindow(ctk.CTk):
                      corner_radius=0).pack(fill="x", padx=14, pady=6)
 
         ctk.CTkLabel(parent, text="ALERT LOG",
-                     font=ctk.CTkFont(family="Courier", size=9),
+                     font=ctk.CTkFont(family="Inter", size=9),
                      text_color=TEXT2).pack(anchor="w", **pad)
 
         log_frame = ctk.CTkFrame(parent, fg_color="transparent")
@@ -969,11 +964,11 @@ class AppWindow(ctk.CTk):
             row = ctk.CTkFrame(log_frame, fg_color="transparent")
             row.pack(fill="x", pady=1)
             dot = ctk.CTkLabel(row, text="●",
-                               font=ctk.CTkFont(family="Courier", size=8),
+                               font=ctk.CTkFont(family="Inter", size=8),
                                text_color=BORDER, width=14)
             dot.pack(side="left")
             lbl = ctk.CTkLabel(row, text="—",
-                               font=ctk.CTkFont(family="Courier", size=9),
+                               font=ctk.CTkFont(family="Inter", size=9),
                                text_color=TEXT3, anchor="w")
             lbl.pack(side="left", fill="x", expand=True)
             self._log_labels.append((dot, lbl))
@@ -982,14 +977,14 @@ class AppWindow(ctk.CTk):
                      corner_radius=0).pack(fill="x", padx=14, pady=6)
 
         ctk.CTkLabel(parent, text="SENSITIVITY",
-                     font=ctk.CTkFont(family="Courier", size=9),
+                     font=ctk.CTkFont(family="Inter", size=9),
                      text_color=TEXT2).pack(anchor="w", **pad)
 
         slider_row = ctk.CTkFrame(parent, fg_color="transparent")
         slider_row.pack(fill="x", padx=14, pady=(2, 0))
 
         self._thresh_val_lbl = ctk.CTkLabel(slider_row, text="0.25",
-                                            font=ctk.CTkFont(family="Courier", size=10),
+                                            font=ctk.CTkFont(family="Inter", size=10),
                                             text_color=AMBER, width=36)
         self._thresh_val_lbl.pack(side="right")
 
@@ -1011,15 +1006,15 @@ class AppWindow(ctk.CTk):
         header = ctk.CTkFrame(gem_card, fg_color="transparent")
         header.pack(fill="x", padx=10, pady=(8, 4))
         ctk.CTkLabel(header, text="●",
-                     font=ctk.CTkFont(family="Courier", size=8),
+                     font=ctk.CTkFont(family="Inter", size=8),
                      text_color=GREEN).pack(side="left")
         ctk.CTkLabel(header, text="  NOCTURA AI · SESSION INSIGHT",
-                     font=ctk.CTkFont(family="Courier", size=8),
+                     font=ctk.CTkFont(family="Inter", size=8),
                      text_color=GREEN).pack(side="left")
 
         self._gemini_lbl = ctk.CTkLabel(gem_card,
                                         text="Monitoring active. No events yet.",
-                                        font=ctk.CTkFont(family="Courier", size=9),
+                                        font=ctk.CTkFont(family="Inter", size=9),
                                         text_color=TEXT2,
                                         wraplength=220, justify="left", anchor="w")
         self._gemini_lbl.pack(fill="x", padx=10, pady=(0, 10))
@@ -1039,9 +1034,9 @@ class AppWindow(ctk.CTk):
                          start=180, extent=extent,
                          outline=color, width=10, style="arc")
         c.create_text(cx, cy - 14, text=f"{int(perclos_val * 100)}%",
-                      font=("Courier", 20, "bold"), fill=color)
+                      font=("Inter", 20, "bold"), fill=color)
         c.create_text(cx, cy + 6, text="PERCLOS",
-                      font=("Courier", 8), fill=TEXT2)
+                      font=("Inter", 8), fill=TEXT2)
 
     def _on_slider(self, val):
         self._thresh_val_lbl.configure(text=f"{val/100:.2f}")
@@ -1053,14 +1048,14 @@ class AppWindow(ctk.CTk):
         self.dash_canvas.pack(fill="both", expand=True)
 
         self.alert_overlay = ctk.CTkLabel(parent, text="",
-                                          font=ctk.CTkFont(family="Courier", size=16, weight="bold"),
+                                          font=ctk.CTkFont(family="Inter", size=16, weight="bold"),
                                           text_color=RED, fg_color="transparent")
         self.alert_overlay.place(relx=0.5, rely=0.05, anchor="n")
 
         self.stop_btn = ctk.CTkButton(
             parent, text="STOP ALARM",
             command=self._stop_alarm,
-            font=ctk.CTkFont(family="Courier", size=14, weight="bold"),
+            font=ctk.CTkFont(family="Inter", size=14, weight="bold"),
             fg_color=RED, hover_color="#CC2222",
             text_color="#FFFFFF", width=200, height=52, corner_radius=8
         )
@@ -1195,7 +1190,7 @@ class AppWindow(ctk.CTk):
 
         self._report_loading = ctk.CTkLabel(
             outer, text="Building your report...",
-            font=ctk.CTkFont(family="Courier", size=13),
+            font=ctk.CTkFont(family="Inter", size=13),
             text_color=TEXT2, fg_color="transparent"
         )
         self._report_loading.place(relx=0.5, rely=0.5, anchor="center")
@@ -1207,7 +1202,7 @@ class AppWindow(ctk.CTk):
 
         ctk.CTkButton(bottom, text="CLOSE APP",
                       command=self._on_close,
-                      font=ctk.CTkFont(family="Courier", size=12, weight="bold"),
+                      font=ctk.CTkFont(family="Inter", size=12, weight="bold"),
                       fg_color=BORDER, hover_color=BORDER2,
                       text_color=TEXT, corner_radius=6,
                       width=160, height=34).pack(side="right", padx=16, pady=9)
@@ -1228,21 +1223,21 @@ class AppWindow(ctk.CTk):
 
         session_btn = ctk.CTkButton(tab_bar, text="THIS SESSION",
                                     command=show_session_tab,
-                                    font=ctk.CTkFont(family="Courier", size=11, weight="bold"),
+                                    font=ctk.CTkFont(family="Inter", size=11, weight="bold"),
                                     fg_color=AMBER, hover_color=AMBER2,
                                     text_color="#000", width=140, height=28, corner_radius=4)
         session_btn.pack(side="left", padx=8, pady=6)
 
         history_btn = ctk.CTkButton(tab_bar, text="DRIVE HISTORY",
                                     command=show_history_tab,
-                                    font=ctk.CTkFont(family="Courier", size=11, weight="bold"),
+                                    font=ctk.CTkFont(family="Inter", size=11, weight="bold"),
                                     fg_color="transparent", hover_color=PANEL,
                                     text_color=TEXT2, border_width=1, border_color=BORDER,
                                     width=140, height=28, corner_radius=4)
         history_btn.pack(side="left", padx=4, pady=6)
 
         ctk.CTkLabel(tab_bar, text="Session saved ✓",
-                     font=ctk.CTkFont(family="Courier", size=10),
+                     font=ctk.CTkFont(family="Inter", size=10),
                      text_color=GREEN).pack(side="right", padx=16)
 
         threading.Thread(target=self._render_report_figure,
@@ -1289,7 +1284,7 @@ class AppWindow(ctk.CTk):
         self._badge_btn = ctk.CTkButton(
             self, text=initials,
             command=self._open_profile_modal,
-            font=ctk.CTkFont(family="Courier", size=14, weight="bold"),
+            font=ctk.CTkFont(family="Inter", size=14, weight="bold"),
             fg_color=CYAN, hover_color="#3A6FBA",
             text_color="#FFF", width=48, height=48, corner_radius=24
         )
@@ -1364,11 +1359,11 @@ class AppWindow(ctk.CTk):
                     relx=0.5, rely=0.5, anchor="center")
             except Exception:
                 ctk.CTkLabel(avatar_frame, text=initials,
-                             font=ctk.CTkFont(family="Courier", size=26, weight="bold"),
+                             font=ctk.CTkFont(family="Inter", size=26, weight="bold"),
                              text_color="#FFF").place(relx=0.5, rely=0.5, anchor="center")
         else:
             ctk.CTkLabel(avatar_frame, text=initials,
-                         font=ctk.CTkFont(family="Courier", size=26, weight="bold"),
+                         font=ctk.CTkFont(family="Inter", size=26, weight="bold"),
                          text_color="#FFF").place(relx=0.5, rely=0.5, anchor="center")
 
         def upload_pic():
@@ -1389,20 +1384,20 @@ class AppWindow(ctk.CTk):
                     print(f"[Profile] Error: {e}")
 
         ctk.CTkButton(inner, text="📷  Change Photo", command=upload_pic,
-                      font=ctk.CTkFont(family="Courier", size=10),
+                      font=ctk.CTkFont(family="Inter", size=10),
                       fg_color="transparent", hover_color=PANEL,
                       text_color=TEXT2, border_width=1, border_color=BORDER,
                       width=150, height=28, corner_radius=6).pack(pady=(0, 16))
 
         # ── Editable name + user ID ───────────────────────────────────────────
         ctk.CTkLabel(inner, text="ACCOUNT INFO",
-                     font=ctk.CTkFont(family="Courier", size=9),
+                     font=ctk.CTkFont(family="Inter", size=9),
                      text_color=TEXT2).pack(anchor="w", pady=(0, 6))
 
         name_row = ctk.CTkFrame(inner, fg_color="transparent")
         name_row.pack(fill="x", pady=(0, 8))
         first_e = ctk.CTkEntry(name_row, placeholder_text="First name",
-                               font=ctk.CTkFont(family="Courier", size=12),
+                               font=ctk.CTkFont(family="Inter", size=12),
                                fg_color=PANEL, border_color=BORDER, border_width=1,
                                text_color=TEXT, placeholder_text_color=TEXT2,
                                width=196, height=38, corner_radius=6)
@@ -1410,7 +1405,7 @@ class AppWindow(ctk.CTk):
         first_e.pack(side="left", padx=(0, 8))
 
         last_e = ctk.CTkEntry(name_row, placeholder_text="Last name",
-                              font=ctk.CTkFont(family="Courier", size=12),
+                              font=ctk.CTkFont(family="Inter", size=12),
                               fg_color=PANEL, border_color=BORDER, border_width=1,
                               text_color=TEXT, placeholder_text_color=TEXT2,
                               width=196, height=38, corner_radius=6)
@@ -1418,7 +1413,7 @@ class AppWindow(ctk.CTk):
         last_e.pack(side="left")
 
         uid_e = ctk.CTkEntry(inner, placeholder_text="User ID",
-                             font=ctk.CTkFont(family="Courier", size=12),
+                             font=ctk.CTkFont(family="Inter", size=12),
                              fg_color=PANEL, border_color=BORDER, border_width=1,
                              text_color=TEXT, placeholder_text_color=TEXT2,
                              width=400, height=38, corner_radius=6)
@@ -1435,11 +1430,11 @@ class AppWindow(ctk.CTk):
 
         # ── Emergency contact ─────────────────────────────────────────────────
         ctk.CTkLabel(inner, text="EMERGENCY CONTACT",
-                     font=ctk.CTkFont(family="Courier", size=9),
+                     font=ctk.CTkFont(family="Inter", size=9),
                      text_color=TEXT2).pack(anchor="w", pady=(0, 6))
 
         ec_name_e = ctk.CTkEntry(inner, placeholder_text="Contact name",
-                                 font=ctk.CTkFont(family="Courier", size=12),
+                                 font=ctk.CTkFont(family="Inter", size=12),
                                  fg_color=PANEL, border_color=BORDER, border_width=1,
                                  text_color=TEXT, placeholder_text_color=TEXT2,
                                  width=400, height=38, corner_radius=6)
@@ -1447,7 +1442,7 @@ class AppWindow(ctk.CTk):
         ec_name_e.pack(pady=(0, 8))
 
         ec_email_e = ctk.CTkEntry(inner, placeholder_text="Contact email",
-                                  font=ctk.CTkFont(family="Courier", size=12),
+                                  font=ctk.CTkFont(family="Inter", size=12),
                                   fg_color=PANEL, border_color=BORDER, border_width=1,
                                   text_color=TEXT, placeholder_text_color=TEXT2,
                                   width=400, height=38, corner_radius=6)
@@ -1460,7 +1455,7 @@ class AppWindow(ctk.CTk):
 
         # ── Editable driver profile ───────────────────────────────────────────
         ctk.CTkLabel(inner, text="DRIVER PROFILE",
-                     font=ctk.CTkFont(family="Courier", size=9),
+                     font=ctk.CTkFont(family="Inter", size=9),
                      text_color=TEXT2).pack(anchor="w", pady=(0, 8))
 
         profile   = get_driver_profile(user_id)
@@ -1468,7 +1463,7 @@ class AppWindow(ctk.CTk):
 
         for q in PROFILE_QUESTIONS:
             ctk.CTkLabel(inner, text=q["label"],
-                         font=ctk.CTkFont(family="Courier", size=10, weight="bold"),
+                         font=ctk.CTkFont(family="Inter", size=10, weight="bold"),
                          text_color=TEXT, anchor="w").pack(fill="x", pady=(6, 2))
 
             if q["type"] == "choice":
@@ -1495,7 +1490,7 @@ class AppWindow(ctk.CTk):
                 for label, value in zip(q["options"], q["values"]):
                     is_sel = value in current_vals
                     btn = ctk.CTkButton(btn_row, text=label,
-                                        font=ctk.CTkFont(family="Courier", size=10),
+                                        font=ctk.CTkFont(family="Inter", size=10),
                                         fg_color=AMBER if is_sel else "transparent",
                                         hover_color=BORDER2,
                                         text_color="#000" if is_sel else TEXT2,
@@ -1509,7 +1504,7 @@ class AppWindow(ctk.CTk):
 
             elif q["type"] == "text":
                 entry = ctk.CTkEntry(inner, placeholder_text=q.get("placeholder", ""),
-                                     font=ctk.CTkFont(family="Courier", size=12),
+                                     font=ctk.CTkFont(family="Inter", size=12),
                                      fg_color=PANEL, border_color=BORDER, border_width=1,
                                      text_color=TEXT, placeholder_text_color=TEXT2,
                                      width=400, height=38, corner_radius=6)
@@ -1523,7 +1518,7 @@ class AppWindow(ctk.CTk):
                      corner_radius=0).pack(fill="x", pady=12)
 
         err_lbl = ctk.CTkLabel(inner, text="",
-                               font=ctk.CTkFont(family="Courier", size=10),
+                               font=ctk.CTkFont(family="Inter", size=10),
                                text_color=RED)
         err_lbl.pack(pady=(0, 8))
 
@@ -1603,13 +1598,13 @@ class AppWindow(ctk.CTk):
 
         ctk.CTkButton(btn_row2, text="SAVE CHANGES",
                       command=save_changes,
-                      font=ctk.CTkFont(family="Courier", size=12, weight="bold"),
+                      font=ctk.CTkFont(family="Inter", size=12, weight="bold"),
                       fg_color=AMBER, hover_color=AMBER2,
                       text_color="#000", width=200, height=40, corner_radius=6).pack(side="left", padx=(0, 8))
 
         ctk.CTkButton(btn_row2, text="CLOSE",
                       command=overlay.destroy,
-                      font=ctk.CTkFont(family="Courier", size=12, weight="bold"),
+                      font=ctk.CTkFont(family="Inter", size=12, weight="bold"),
                       fg_color=BORDER, hover_color=BORDER2,
                       text_color=TEXT, width=140, height=40, corner_radius=6).pack(side="left")
 

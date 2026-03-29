@@ -40,15 +40,15 @@ def get_emergency_contact():
     bar.pack_propagate(False)
 
     ctk.CTkLabel(bar, text="Noctua",
-                 font=ctk.CTkFont(family="Courier", size=13, weight="bold"),
+                 font=ctk.CTkFont(family="Inter", size=13, weight="bold"),
                  text_color=AMBER).pack(side="left", padx=16)
 
     ctk.CTkLabel(bar, text="EMERGENCY CONTACT SETUP",
-                 font=ctk.CTkFont(family="Courier", size=11),
+                 font=ctk.CTkFont(family="Inter", size=11),
                  text_color=TEXT2).pack(side="left", padx=8)
 
     ctk.CTkLabel(bar, text="STEP 3 OF 4",
-                 font=ctk.CTkFont(family="Courier", size=10),
+                 font=ctk.CTkFont(family="Inter", size=10),
                  text_color=TEXT2).pack(side="right", padx=16)
 
     # ── Centered card ─────────────────────────────────────────────────────────
@@ -70,24 +70,24 @@ def get_emergency_contact():
 
     # Title
     ctk.CTkLabel(inner, text="EMERGENCY CONTACT",
-                 font=ctk.CTkFont(family="Courier", size=22, weight="bold"),
+                 font=ctk.CTkFont(family="Inter", size=22, weight="bold"),
                  text_color=AMBER).pack(pady=(0, 4))
 
     # Subtitle
     ctk.CTkLabel(inner,
                  text="If a critical alert fires, we'll notify this person.",
-                 font=ctk.CTkFont(family="Courier", size=10),
+                 font=ctk.CTkFont(family="Inter", size=10),
                  text_color=TEXT2).pack(pady=(0, 28))
 
     # Name field
     ctk.CTkLabel(inner, text="CONTACT NAME",
-                 font=ctk.CTkFont(family="Courier", size=9),
+                 font=ctk.CTkFont(family="Inter", size=9),
                  text_color=TEXT2).pack(anchor="w")
 
     name_entry = ctk.CTkEntry(
         inner,
         placeholder_text="e.g. Jane Smith",
-        font=ctk.CTkFont(family="Courier", size=13),
+        font=ctk.CTkFont(family="Inter", size=13),
         fg_color=PANEL, border_color=BORDER, border_width=1,
         text_color=TEXT, placeholder_text_color=TEXT2,
         width=380, height=42, corner_radius=6
@@ -96,13 +96,13 @@ def get_emergency_contact():
 
     # Email field
     ctk.CTkLabel(inner, text="CONTACT EMAIL",
-                 font=ctk.CTkFont(family="Courier", size=9),
+                 font=ctk.CTkFont(family="Inter", size=9),
                  text_color=TEXT2).pack(anchor="w")
 
     email_entry = ctk.CTkEntry(
         inner,
         placeholder_text="e.g. jane@gmail.com",
-        font=ctk.CTkFont(family="Courier", size=13),
+        font=ctk.CTkFont(family="Inter", size=13),
         fg_color=PANEL, border_color=BORDER, border_width=1,
         text_color=TEXT, placeholder_text_color=TEXT2,
         width=380, height=42, corner_radius=6
@@ -111,7 +111,7 @@ def get_emergency_contact():
 
     # Error label
     err_lbl = ctk.CTkLabel(inner, text="",
-                           font=ctk.CTkFont(family="Courier", size=10),
+                           font=ctk.CTkFont(family="Inter", size=10),
                            text_color=RED)
     err_lbl.pack(pady=(0, 16))
 
@@ -132,7 +132,7 @@ def get_emergency_contact():
     ctk.CTkButton(
         inner, text="SAVE CONTACT",
         command=confirm,
-        font=ctk.CTkFont(family="Courier", size=12, weight="bold"),
+        font=ctk.CTkFont(family="Inter", size=12, weight="bold"),
         fg_color=AMBER, hover_color="#E8920D",
         text_color="#000000",
         width=380, height=42, corner_radius=6
@@ -141,7 +141,7 @@ def get_emergency_contact():
     ctk.CTkButton(
         inner, text="Skip for now",
         command=skip,
-        font=ctk.CTkFont(family="Courier", size=11),
+        font=ctk.CTkFont(family="Inter", size=11),
         fg_color="transparent", hover_color=PANEL,
         text_color=TEXT2,
         border_width=1, border_color=BORDER,
@@ -150,7 +150,7 @@ def get_emergency_contact():
 
     ctk.CTkLabel(inner,
                  text="You can update this later in settings.",
-                 font=ctk.CTkFont(family="Courier", size=9),
+                 font=ctk.CTkFont(family="Inter", size=9),
                  text_color=BORDER).pack(pady=(16, 0))
 
     win.bind("<Return>", lambda e: confirm())

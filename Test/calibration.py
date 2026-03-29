@@ -118,7 +118,7 @@ class CalibrationWindow(ctk.CTk):
             col.pack(side="left", padx=24)
 
             dot = ctk.CTkLabel(col, text="●",
-                               font=ctk.CTkFont(family="Courier", size=18),
+                               font=ctk.CTkFont(family="Inter", size=18),
                                text_color=BORDER)
             dot.pack()
             self._step_dots.append(dot)
@@ -155,7 +155,7 @@ class CalibrationWindow(ctk.CTk):
         # Step number
         self._step_num_lbl = ctk.CTkLabel(
             inner, text="STEP 1 OF 3",
-            font=ctk.CTkFont(family="Courier", size=10),
+            font=ctk.CTkFont(family="Inter", size=10),
             text_color=TEXT2)
         self._step_num_lbl.pack(pady=(0, 8))
 
@@ -168,14 +168,14 @@ class CalibrationWindow(ctk.CTk):
         # Step title
         self._title_lbl = ctk.CTkLabel(
             inner, text="",
-            font=ctk.CTkFont(family="Courier", size=20, weight="bold"),
+            font=ctk.CTkFont(family="Inter", size=20, weight="bold"),
             text_color=GREEN)
         self._title_lbl.pack(pady=(0, 8))
 
         # Instruction
         self._instr_lbl = ctk.CTkLabel(
             inner, text="",
-            font=ctk.CTkFont(family="Courier", size=12),
+            font=ctk.CTkFont(family="Inter", size=12),
             text_color=TEXT,
             wraplength=280, justify="center")
         self._instr_lbl.pack(pady=(0, 6))
@@ -183,7 +183,7 @@ class CalibrationWindow(ctk.CTk):
         # Sub instruction
         self._sub_lbl = ctk.CTkLabel(
             inner, text="",
-            font=ctk.CTkFont(family="Courier", size=10),
+            font=ctk.CTkFont(family="Inter", size=10),
             text_color=TEXT2,
             wraplength=280, justify="center")
         self._sub_lbl.pack(pady=(0, 24))
@@ -198,7 +198,7 @@ class CalibrationWindow(ctk.CTk):
         # Status text
         self._status_lbl = ctk.CTkLabel(
             inner, text="Position your face in the camera",
-            font=ctk.CTkFont(family="Courier", size=10),
+            font=ctk.CTkFont(family="Inter", size=10),
             text_color=TEXT2)
         self._status_lbl.pack(pady=(0, 20))
 
@@ -206,7 +206,7 @@ class CalibrationWindow(ctk.CTk):
         self._btn = ctk.CTkButton(
             inner, text="START COLLECTING",
             command=self._on_btn,
-            font=ctk.CTkFont(family="Courier", size=12, weight="bold"),
+            font=ctk.CTkFont(family="Inter", size=12, weight="bold"),
             fg_color=AMBER, hover_color="#E8920D",
             text_color="#000000",
             width=280, height=44, corner_radius=6)

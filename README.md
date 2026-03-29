@@ -129,7 +129,7 @@ Place `welcome.mp4` in the project root. If missing, a static logo screen is sho
 ## Running
 
 ```bash
-python ui.py
+python main.py
 ```
 
 ---

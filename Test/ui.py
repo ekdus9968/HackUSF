@@ -880,13 +880,13 @@ class AppWindow(ctk.CTk):
         body = ctk.CTkFrame(self, fg_color=BG, corner_radius=0)
         body.pack(fill="both", expand=True)
 
-        left = ctk.CTkFrame(body, fg_color=PANEL, width=240, corner_radius=0,
+        left = ctk.CTkFrame(body, fg_color=PANEL, width=320, corner_radius=0,
                             border_width=2, border_color=BORDER2)
         left.pack(side="left", fill="y")
         left.pack_propagate(False)
         self._build_left_panel(left)
 
-        right = ctk.CTkFrame(body, fg_color=PANEL, width=260, corner_radius=0,
+        right = ctk.CTkFrame(body, fg_color=PANEL, width=340, corner_radius=0,
                              border_width=2, border_color=BORDER2)
         right.pack(side="right", fill="y")
         right.pack_propagate(False)
@@ -897,6 +897,7 @@ class AppWindow(ctk.CTk):
         self._build_center(center)
         self._dashboard_active = True
         self.after(1500, self._load_and_show_weather)
+        self.after(2000, self._load_and_show_traffic)
         self._dashboard_loop()
 
     def _end_session(self):
@@ -1136,6 +1137,23 @@ class AppWindow(ctk.CTk):
                                             fg_color="transparent", text_color=TEXT)
         self._weather_text_lbl.pack(side="left", padx=(0, 14), pady=10)
 
+        # Traffic overlay card
+        self._traffic_card = ctk.CTkFrame(parent, fg_color="#0A2A4A",
+                                        corner_radius=14, border_width=2,
+                                        border_color="#2A6AAA")
+        self._traffic_card.place(relx=0.97, rely=0.15, anchor="ne")
+        self._traffic_card.place_forget()
+
+        self._traffic_icon_lbl = ctk.CTkLabel(self._traffic_card, text="",
+                                            font=ctk.CTkFont(size=22),
+                                            fg_color="transparent", text_color=TEXT)
+        self._traffic_icon_lbl.pack(side="left", padx=(12, 4), pady=10)
+
+        self._traffic_text_lbl = ctk.CTkLabel(self._traffic_card, text="",
+                                            font=ctk.CTkFont(family="Inter", size=11),
+                                            fg_color="transparent", text_color=TEXT)
+        self._traffic_text_lbl.pack(side="left", padx=(0, 14), pady=10)
+
         self.alert_overlay = ctk.CTkLabel(parent, text="",
                                         font=ctk.CTkFont(family="Inter", size=16, weight="bold"),
                                         text_color=RED, fg_color="transparent")
@@ -1192,7 +1210,52 @@ class AppWindow(ctk.CTk):
 
         threading.Thread(target=fetch, daemon=True).start()
 
-    def _fade_weather_card(self, step=0):
+    def _load_and_show_traffic(self):
+        """Fetch traffic in background then show overlay card on camera feed."""
+        def fetch():
+            try:
+                from weather_greeting import get_traffic
+                traffic = get_traffic()
+
+                # Pick icon based on traffic condition
+                if traffic == "light":
+                    icon = "🟢"
+                elif traffic == "moderate":
+                    icon = "🟡"
+                else:  # heavy
+                    icon = "🔴"
+
+                def show():
+                    try:
+                        self._traffic_icon_lbl.configure(text=icon)
+                        self._traffic_text_lbl.configure(text=f"Traffic {traffic.capitalize()}")
+                        self._traffic_card.place(relx=0.97, rely=0.15, anchor="ne")
+                        self.after(6000, self._fade_traffic_card)
+                    except Exception as e:
+                        print(f"[Traffic Show] Error: {e}")
+                self.after(0, show)
+            except Exception as e:
+                print(f"[Traffic] {e}")
+
+        threading.Thread(target=fetch, daemon=True).start()
+
+    def _fade_traffic_card(self, step=0):
+        alphas = ["#0A2A4A", "#081E38", "#06162A", "#03101C", "#01080E"]
+        if step < len(alphas):
+            try:
+                self._traffic_card.configure(fg_color=alphas[step])
+                self._traffic_icon_lbl.configure(text_color=
+                    [TEXT, "#AAB7CC", "#7E8BA0", "#566275", "#2E3848"][step])
+                self._traffic_text_lbl.configure(text_color=
+                    [TEXT, "#AAB7CC", "#7E8BA0", "#566275", "#2E3848"][step])
+                self.after(200, lambda: self._fade_traffic_card(step + 1))
+            except Exception:
+                pass
+        else:
+            try:
+                self._traffic_card.place_forget()
+            except Exception:
+                pass
         alphas = ["#0A2A4A", "#081E38", "#06162A", "#03101C", "#01080E"]
         if step < len(alphas):
             try:

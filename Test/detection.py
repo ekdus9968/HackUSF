@@ -77,7 +77,7 @@ spoke_critical = False
 
 # Driving time reminder
 drive_start_t     = time.time()
-DRIVE_REMINDER_S  = 30        # 30 s for demo (swap to 7200 for 2-hr real use)
+DRIVE_REMINDER_S  = 120        # 30 s for demo (swap to 7200 for 2-hr real use)
 last_reminder_t   = drive_start_t
 
 with mp_face_mesh.FaceMesh(

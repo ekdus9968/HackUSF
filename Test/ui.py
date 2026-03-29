@@ -1,5 +1,5 @@
 # =============================================================================
-# ui.py — Noctua unified application window
+# ui.py — Noctura unified application window
 # =============================================================================
 
 import os
@@ -45,7 +45,7 @@ class AppWindow(ctk.CTk):
 
     def __init__(self):
         super().__init__()
-        self.title("Noctua")
+        self.title("Noctura")
         self.configure(fg_color=BG)
         self.resizable(True, True)
         self.after(100, lambda: self.state("zoomed"))
@@ -84,7 +84,7 @@ class AppWindow(ctk.CTk):
                            corner_radius=0, border_width=1, border_color=BORDER)
         bar.pack(fill="x", side="top")
         bar.pack_propagate(False)
-        ctk.CTkLabel(bar, text="NOCTUA",
+        ctk.CTkLabel(bar, text="NOCTURA",
                      font=ctk.CTkFont(family="Courier", size=13, weight="bold"),
                      text_color=AMBER).pack(side="left", padx=16)
         if subtitle:
@@ -165,7 +165,7 @@ class AppWindow(ctk.CTk):
             self._play_welcome_video()
         else:
             self._welcome_canvas.create_text(
-                400, 300, text="NOCTUA", fill=AMBER, font=("Courier", 48, "bold"))
+                400, 300, text="NOCTURA", fill=AMBER, font=("Courier", 48, "bold"))
 
         ctk.CTkButton(
             outer, text="GET STARTED →",
@@ -378,9 +378,9 @@ class AppWindow(ctk.CTk):
         card.place(relx=0.5, rely=0.5, anchor="center")
 
         # Mac mousewheel scroll fix
-        card.bind("<Enter>", lambda e: card._parent_canvas.focus_set())
-        self.bind("<MouseWheel>", lambda e: card._parent_canvas.yview_scroll(
-            int(-1 * (e.delta / 120)), "units"))
+        def _on_scroll(e):
+            card._parent_canvas.yview_scroll(int(-1 * (e.delta / 120)), "units")
+        card.bind_all("<MouseWheel>", _on_scroll)
 
         ctk.CTkLabel(card, text="DRIVER PROFILE",
                      font=ctk.CTkFont(family="Courier", size=20, weight="bold"),
@@ -758,7 +758,7 @@ class AppWindow(ctk.CTk):
                                 fg_color=GREEN, text_color="#000", state="disabled")
         self._cal_title_lbl.configure(text="ALL DONE!", text_color=GREEN)
         self._cal_instr_lbl.configure(text="Your personal profile has been saved.")
-        self._cal_sub_lbl.configure(text="Starting Noctua...")
+        self._cal_sub_lbl.configure(text="Starting Noctura...")
         user = self._user
         if user and user["user_id"] != "guest":
             save_calibration(user["user_id"], self._ear_threshold, self._pitch_baseline)
@@ -782,16 +782,50 @@ class AppWindow(ctk.CTk):
         if not self._cam_active:
             self._start_camera()
 
-        bar = ctk.CTkFrame(self, fg_color=PANEL, height=36,
+        bar = ctk.CTkFrame(self, fg_color=PANEL, height=52,
                            corner_radius=0, border_width=1, border_color=BORDER)
         bar.pack(fill="x", side="top")
         bar.pack_propagate(False)
 
-        ctk.CTkLabel(bar, text="NOCTUA",
+        ctk.CTkLabel(bar, text="NOCTURA",
                      font=ctk.CTkFont(family="Courier", size=13, weight="bold"),
                      text_color=AMBER).pack(side="left", padx=16)
         ctk.CTkLabel(bar, text="DRIVER MONITORING SYSTEM · ACTIVE SESSION",
                      font=ctk.CTkFont(size=11), text_color=TEXT2).pack(side="left", padx=8)
+
+        # Profile badge — circle in title bar
+        user     = self._user or {}
+        initials = (user.get("first_name", "?")[:1] + user.get("last_name", "?")[:1]).upper() or "?"
+        pic_path = os.path.join(os.path.dirname(__file__),
+                                f"profile_{user.get('user_id', 'guest')}.png")
+
+        self._badge_btn = ctk.CTkButton(
+            bar, text=initials,
+            command=self._open_profile_modal,
+            font=ctk.CTkFont(family="Courier", size=13, weight="bold"),
+            fg_color=CYAN, hover_color="#3A6FBA",
+            text_color="#FFF", width=38, height=38, corner_radius=19
+        )
+
+        if os.path.exists(pic_path):
+            try:
+                img  = Image.open(pic_path).resize((38, 38)).convert("RGBA")
+                mask = Image.new("L", (38, 38), 0)
+                ImageDraw.Draw(mask).ellipse((0, 0, 38, 38), fill=255)
+                img.putalpha(mask)
+                self._badge_photo = ctk.CTkImage(img, size=(38, 38))
+                self._badge_btn.configure(image=self._badge_photo, text="")
+            except Exception:
+                pass
+
+        self._badge_btn.pack(side="right", padx=(4, 12))
+
+        ctk.CTkButton(bar, text="END SESSION",
+                      command=self._end_session,
+                      font=ctk.CTkFont(family="Courier", size=11, weight="bold"),
+                      fg_color="transparent", hover_color=PANEL,
+                      text_color=TEXT2, border_width=1, border_color=BORDER,
+                      width=110, height=30, corner_radius=4).pack(side="right", padx=4)
 
         self._status_label = ctk.CTkLabel(bar, text="● MONITORING",
                                           font=ctk.CTkFont(family="Courier", size=11),
@@ -802,13 +836,6 @@ class AppWindow(ctk.CTk):
                                            font=ctk.CTkFont(family="Courier", size=11),
                                            text_color=TEXT2)
         self._session_label.pack(side="right", padx=16)
-
-        ctk.CTkButton(bar, text="END SESSION",
-                      command=self._end_session,
-                      font=ctk.CTkFont(family="Courier", size=11, weight="bold"),
-                      fg_color="transparent", hover_color=PANEL,
-                      text_color=TEXT2, border_width=1, border_color=BORDER,
-                      width=110, height=26, corner_radius=4).pack(side="right", padx=8)
 
         body = ctk.CTkFrame(self, fg_color=BG, corner_radius=0)
         body.pack(fill="both", expand=True)
@@ -830,14 +857,11 @@ class AppWindow(ctk.CTk):
         self._build_center(center)
 
         self._dashboard_active = True
-        self.after(150, self._show_profile_badge)  # wait for window to be fully drawn
-        self.bind("<Configure>", self._reposition_badge)
         self._dashboard_loop()
 
     def _end_session(self):
         self._dashboard_active = False
         self._hide_profile_badge()
-        self.unbind("<Configure>")
         state["end_session"]   = True
         state["session_id"]    = None
         self.after(500, self._wait_for_session_save)
@@ -995,7 +1019,7 @@ class AppWindow(ctk.CTk):
         ctk.CTkLabel(header, text="●",
                      font=ctk.CTkFont(family="Courier", size=8),
                      text_color=GREEN).pack(side="left")
-        ctk.CTkLabel(header, text="  NOCTUA AI · SESSION INSIGHT",
+        ctk.CTkLabel(header, text="  NOCTURA AI · SESSION INSIGHT",
                      font=ctk.CTkFont(family="Courier", size=8),
                      text_color=GREEN).pack(side="left")
 
@@ -1293,7 +1317,7 @@ class AppWindow(ctk.CTk):
     def _hide_profile_badge(self):
         if self._badge_btn is not None:
             try:
-                self._badge_btn.place_forget()
+                self._badge_btn.destroy()
             except Exception:
                 pass
             self._badge_btn = None
@@ -1326,6 +1350,11 @@ class AppWindow(ctk.CTk):
                                        scrollbar_button_color=BORDER,
                                        scrollbar_button_hover_color=BORDER2)
         inner.pack(fill="both", expand=True, padx=28, pady=24)
+
+        # Mac scroll fix
+        def _on_modal_scroll(e):
+            inner._parent_canvas.yview_scroll(int(-1 * (e.delta / 120)), "units")
+        inner.bind_all("<MouseWheel>", _on_modal_scroll)
 
         # ── Avatar ────────────────────────────────────────────────────────────
         avatar_frame = ctk.CTkFrame(inner, fg_color=CYAN,
@@ -1406,6 +1435,34 @@ class AppWindow(ctk.CTk):
 
         ctk.CTkFrame(inner, fg_color=BORDER, height=1,
                      corner_radius=0).pack(fill="x", pady=12)
+        
+        ctk.CTkFrame(inner, fg_color=BORDER, height=1,
+                     corner_radius=0).pack(fill="x", pady=12)
+
+        # ── Emergency contact ─────────────────────────────────────────────────
+        ctk.CTkLabel(inner, text="EMERGENCY CONTACT",
+                     font=ctk.CTkFont(family="Courier", size=9),
+                     text_color=TEXT2).pack(anchor="w", pady=(0, 6))
+
+        ec_name_e = ctk.CTkEntry(inner, placeholder_text="Contact name",
+                                 font=ctk.CTkFont(family="Courier", size=12),
+                                 fg_color=PANEL, border_color=BORDER, border_width=1,
+                                 text_color=TEXT, placeholder_text_color=TEXT2,
+                                 width=400, height=38, corner_radius=6)
+        ec_name_e.insert(0, user.get("emergency_email", "").split("|")[0] if "|" in user.get("emergency_email", "") else state.get("contact_name", ""))
+        ec_name_e.pack(pady=(0, 8))
+
+        ec_email_e = ctk.CTkEntry(inner, placeholder_text="Contact email",
+                                  font=ctk.CTkFont(family="Courier", size=12),
+                                  fg_color=PANEL, border_color=BORDER, border_width=1,
+                                  text_color=TEXT, placeholder_text_color=TEXT2,
+                                  width=400, height=38, corner_radius=6)
+        ec_email_e.insert(0, user.get("emergency_email", ""))
+        ec_email_e.pack(pady=(0, 4))
+
+        ctk.CTkFrame(inner, fg_color=BORDER, height=1,
+                     corner_radius=0).pack(fill="x", pady=12)
+
 
         # ── Editable driver profile ───────────────────────────────────────────
         ctk.CTkLabel(inner, text="DRIVER PROFILE",
@@ -1504,6 +1561,25 @@ class AppWindow(ctk.CTk):
                 except Exception as e:
                     err_lbl.configure(text=f"Error saving: {e}")
                     return
+            # Save emergency contact to state + DB
+            new_ec_name  = ec_name_e.get().strip()
+            new_ec_email = ec_email_e.get().strip()
+            state["contact_name"]  = new_ec_name
+            state["contact_email"] = new_ec_email
+            if user_id != "guest":
+                try:
+                    from auth import DB_PATH
+                    con = sqlite3.connect(DB_PATH)
+                    con.execute(
+                        "UPDATE users SET emergency_email=? WHERE user_id=?",
+                        (new_ec_email, user_id)
+                    )
+                    con.commit()
+                    con.close()
+                    self._user["emergency_email"] = new_ec_email
+                except Exception as e:
+                    err_lbl.configure(text=f"Error saving contact: {e}")
+                    return
 
             # Save driver profile
             profile_data = {}
@@ -1519,10 +1595,14 @@ class AppWindow(ctk.CTk):
             if user_id != "guest":
                 save_driver_profile(user_id, profile_data)
 
-            # Refresh badge
+            # Update badge initials in place
             overlay.destroy()
-            self._hide_profile_badge()
-            self._show_profile_badge()
+            if self._badge_btn is not None:
+                new_initials = (new_first[:1] + new_last[:1]).upper()
+                try:
+                    self._badge_btn.configure(text=new_initials)
+                except Exception:
+                    pass
 
         btn_row2 = ctk.CTkFrame(inner, fg_color="transparent")
         btn_row2.pack(pady=(0, 8))

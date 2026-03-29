@@ -855,8 +855,8 @@ class AppWindow(ctk.CTk):
         center = ctk.CTkFrame(body, fg_color="#000", corner_radius=0)
         center.pack(side="left", fill="both", expand=True)
         self._build_center(center)
-
         self._dashboard_active = True
+        self.after(1500, self._load_and_show_weather)
         self._dashboard_loop()
 
     def _end_session(self):
@@ -1057,6 +1057,92 @@ class AppWindow(ctk.CTk):
     def _build_center(self, parent):
         self.dash_canvas = ctk.CTkCanvas(parent, bg="#000", highlightthickness=0)
         self.dash_canvas.pack(fill="both", expand=True)
+
+        # Weather overlay card
+        self._weather_card = ctk.CTkFrame(parent, fg_color="#0A2A4A",
+                                        corner_radius=10, border_width=1,
+                                        border_color="#1A4A7A")
+        self._weather_card.place(relx=0.97, rely=0.04, anchor="ne")
+        self._weather_card.place_forget()
+
+        self._weather_icon_lbl = ctk.CTkLabel(self._weather_card, text="",
+                                            font=ctk.CTkFont(size=22),
+                                            fg_color="transparent", text_color=TEXT)
+        self._weather_icon_lbl.pack(side="left", padx=(12, 4), pady=10)
+
+        self._weather_text_lbl = ctk.CTkLabel(self._weather_card, text="",
+                                            font=ctk.CTkFont(family="Inter", size=11),
+                                            fg_color="transparent", text_color=TEXT)
+        self._weather_text_lbl.pack(side="left", padx=(0, 14), pady=10)
+
+        self.alert_overlay = ctk.CTkLabel(parent, text="",
+                                        font=ctk.CTkFont(family="Inter", size=16, weight="bold"),
+                                        text_color=RED, fg_color="transparent")
+        self.alert_overlay.place(relx=0.5, rely=0.05, anchor="n")
+
+        self.stop_btn = ctk.CTkButton(
+            parent, text="STOP ALARM",
+            command=self._stop_alarm,
+            font=ctk.CTkFont(family="Inter", size=14, weight="bold"),
+            fg_color=RED, hover_color="#CC2222",
+            text_color="#FFFFFF", width=200, height=52, corner_radius=8
+        )
+        self.stop_btn.place_forget()
+    def _load_and_show_weather(self):
+        """Fetch weather in background then show overlay card on camera feed."""
+        def fetch():
+            try:
+                from weather_greeting import get_weather_overlay
+                desc, temp = get_weather_overlay()
+
+                # Pick a simple text symbol based on condition
+                desc_l = desc.lower()
+                if any(w in desc_l for w in ["sun", "clear"]):
+                    icon = "☀"
+                elif any(w in desc_l for w in ["cloud", "overcast"]):
+                    icon = "☁"
+                elif any(w in desc_l for w in ["rain", "drizzle", "shower"]):
+                    icon = "🌧"
+                elif any(w in desc_l for w in ["storm", "thunder"]):
+                    icon = "⛈"
+                elif any(w in desc_l for w in ["snow", "sleet", "blizzard"]):
+                    icon = "❄"
+                elif any(w in desc_l for w in ["fog", "mist", "haze"]):
+                    icon = "🌫"
+                else:
+                    icon = "🌡"
+
+                def show():
+                    try:
+                        self._weather_icon_lbl.configure(text=icon)
+                        self._weather_text_lbl.configure(text=f"{desc}  {temp}°F")
+                        self._weather_card.place(relx=0.97, rely=0.04, anchor="ne")
+                        self.after(6000, self._fade_weather_card)
+                    except Exception:
+                        pass
+                self.after(0, show)
+            except Exception as e:
+                print(f"[Weather] {e}")
+
+        threading.Thread(target=fetch, daemon=True).start()
+
+    def _fade_weather_card(self, step=0):
+        alphas = ["#0A2A4A", "#081E38", "#06162A", "#03101C", "#01080E"]
+        if step < len(alphas):
+            try:
+                self._weather_card.configure(fg_color=alphas[step])
+                self._weather_icon_lbl.configure(text_color=
+                    [TEXT, "#AAB7CC", "#7E8BA0", "#566275", "#2E3848"][step])
+                self._weather_text_lbl.configure(text_color=
+                    [TEXT, "#AAB7CC", "#7E8BA0", "#566275", "#2E3848"][step])
+                self.after(200, lambda: self._fade_weather_card(step + 1))
+            except Exception:
+                pass
+        else:
+            try:
+                self._weather_card.place_forget()
+            except Exception:
+                pass
 
         self.alert_overlay = ctk.CTkLabel(parent, text="",
                                           font=ctk.CTkFont(family="Inter", size=16, weight="bold"),
@@ -1649,3 +1735,4 @@ class AppWindow(ctk.CTk):
             self._welcome_cap.release()
         self._stop_camera()
         self.destroy()
+    

@@ -6,7 +6,7 @@ stop_triggered = [False]
 
 def _listen_loop():
     r   = sr.Recognizer()
-    mic = sr.Microphone()
+    mic = sr.Microphone(device_index=0, sample_rate=16000, chunk_size=1024)
 
     # noisy 
     with mic as source:

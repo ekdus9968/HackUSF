@@ -22,5 +22,3 @@ Test/users.db
 
 # other
 __pycache__/config.cpython-313.pyc
-
-Test/.env
